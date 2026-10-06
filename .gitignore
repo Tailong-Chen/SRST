@@ -1,0 +1,9 @@
+# Generated Python/runtime files
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Demo outputs
+outputs/
+*.zip

@@ -14,10 +14,10 @@ We developed a deep learning-driven approach, termed super-resolution spatiotemp
 
 Clone the repo and build the python environment.
 
+The `environment.yml` file is the original machine-specific lock and should not be used for a new Windows installation. Windows users should follow [README_WINDOWS.md](README_WINDOWS.md) and the [complete English step-by-step guide](PROJECT_STEP_BY_STEP_EN.md), then run `install_windows.bat`.
+
 ```
 git clone https://github.com/XuLab-BIT/SRST.git
-conda env create -f environment.yml
-conda activate srst_env
 ```
 
 ## Training
@@ -36,6 +36,10 @@ You can train networks that process different data by modifying the import file 
 ## Fitting
 
 Fitting.ipynb provides the function of fitting the original data to generate super-resolution reconstruction. It is necessary to provide a trained network and data to be fitted.
+
+## Windows demo
+
+For a one-click pretrained demo on Windows, see [README_WINDOWS.md](README_WINDOWS.md) and the [complete English step-by-step guide](PROJECT_STEP_BY_STEP_EN.md). `setup_and_run_demo.bat` creates the curated `srst_demo` Conda environment and runs the bundled checkpoint on the example TIFF. It installs the explicit PyTorch CUDA 12.8 wheel for Win11, performs a short CUDA smoke test when `nvidia-smi` is available, and otherwise selects CPU automatically.
 
 ## Acknowledgements
 

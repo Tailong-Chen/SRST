@@ -8,6 +8,21 @@ from typing import Union, Tuple, Callable, Iterable
 from tqdm import tqdm
 
 
+def _read_tiff(path: Union[str, pathlib.Path], *, multifile: bool = True):
+    """Read a TIFF with old and new tifffile versions.
+
+    ``multifile`` was removed from newer ``tifffile.imread`` signatures. The
+    flag is only an optimisation for this historical loader, so retry without
+    it when the installed version rejects it.
+    """
+    try:
+        return tifffile.imread(str(path), multifile=multifile)
+    except TypeError as exc:
+        if "multifile" not in str(exc):
+            raise
+        return tifffile.imread(str(path))
+
+
 def load_tif(path: (str, pathlib.Path), multifile=True) -> torch.Tensor:
     """
     Reads the tif(f) files. When a folder is specified, potentially multiple files are loaded.
@@ -33,7 +48,7 @@ def load_tif(path: (str, pathlib.Path), multifile=True) -> torch.Tensor:
         file_list = sorted(p.glob('*.tif*'))  # load .tif or .tiff
         frames = []
         for f in tqdm(file_list, desc="Tiff loading"):
-            frames.append(torch.from_numpy(tifffile.imread(str(f), multifile=False).astype('float32')))
+            frames.append(torch.from_numpy(_read_tiff(f, multifile=False).astype('float32')))
 
         if frames.__len__() >= 2:
             frames = torch.stack(frames, 0)
@@ -41,7 +56,7 @@ def load_tif(path: (str, pathlib.Path), multifile=True) -> torch.Tensor:
             frames = frames[0]
 
     else:
-        im = tifffile.imread(str(p), multifile=multifile)
+        im = _read_tiff(p, multifile=multifile)
         frames = torch.from_numpy(im.astype('float32'))
 
     if frames.squeeze().ndim <= 2:
@@ -71,7 +86,10 @@ class TiffTensor:
         if not isinstance(pos, tuple):
             pos = tuple([pos])
 
-        image = tifffile.imread(str(self._file), key=pos[0]).astype(self._dtype)
+        key = pos[0]
+        if isinstance(key, torch.Tensor):
+            key = key.item() if key.ndim == 0 else key.tolist()
+        image = tifffile.imread(str(self._file), key=key).astype(self._dtype)
 
         if len(pos) == 1:
             return torch.from_numpy(image)
