@@ -27,7 +27,7 @@ try {
     $operation = 'create'
     if (Test-Path -LiteralPath (Join-Path $SrstEnvironment 'python.exe')) { $operation = 'install' }
     # Explicit channels are needed before Conda's pre-command plugins run.
-    $condaArguments = @($operation, '--yes', '--override-channels', '--channel', 'turagalab', '--channel', 'conda-forge', '--prefix', $SrstEnvironment, '--file', (Join-Path $SrstRoot 'requirements-windows-conda.txt'))
+    $condaArguments = @($operation, '--yes', '--override-channels', '--channel', 'turagalab', '--channel', 'conda-forge', '--prefix', $SrstEnvironment, '--file', (Join-Path $SrstRoot 'requirements\windows-conda.txt'))
     if ([IO.Path]::GetFileNameWithoutExtension($conda) -eq 'micromamba') {
         $condaArguments += @('--no-rc', '--root-prefix', (Join-Path $SrstRoot '.runtime\mamba'))
     } elseif ($operation -eq 'create') {
@@ -38,7 +38,7 @@ try {
     # The CUDA wheel is several GB. Tolerate pauses and interrupted transfers
     # without changing the user's global pip configuration.
     Write-Host 'Large downloads: timeout 120 s, connection retries 10, resume attempts 20. Keep this window open while downloads resume.'
-    Invoke-SrstCommand $conda ($run + @('-m', 'pip', 'install', '--timeout', '120', '--retries', '10', '--resume-retries', '20', '--requirement', (Join-Path $SrstRoot 'requirements-windows-demo.txt')))
+    Invoke-SrstCommand $conda ($run + @('-m', 'pip', 'install', '--timeout', '120', '--retries', '10', '--resume-retries', '20', '--requirement', (Join-Path $SrstRoot 'requirements\windows-demo.txt')))
     Write-Host '[3/5] Checking dependencies and the compiled spline module ...'
     Invoke-SrstCommand $conda ($run + @('-m', 'pip', 'check'))
     Invoke-SrstCommand $conda ($run + @('-c', "import torch, numpy, scipy, spline, decode, demo, notebook, jupyterlab, ipykernel; print('Python/NumPy/spline/SRST/Jupyter imports OK'); print('torch:', torch.__version__); print('numpy:', numpy.__version__); print('CUDA available:', torch.cuda.is_available())"))

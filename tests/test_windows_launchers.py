@@ -23,9 +23,9 @@ class WindowsLaunchers(unittest.TestCase):
         self.addCleanup(self.tmp.cleanup)
         self.project = Path(self.tmp.name) / "project with spaces"
         self.project.mkdir()
-        for pattern in ("*.bat", "*.yml", "requirements-windows-*.txt", "constraints-windows-*.txt"):
-            for path in ROOT.glob(pattern):
-                shutil.copy2(path, self.project / path.name)
+        for path in ROOT.glob("*.bat"):
+            shutil.copy2(path, self.project / path.name)
+        shutil.copytree(ROOT / "requirements", self.project / "requirements")
         if (ROOT / "scripts").exists():
             shutil.copytree(ROOT / "scripts", self.project / "scripts")
         for name in (
@@ -116,6 +116,13 @@ class WindowsLaunchers(unittest.TestCase):
         self.assertIn("--no-default-packages", calls)
         self.assertIn("--override-channels", calls)
 
+    def test_installer_uses_manifests_from_requirements_directory(self):
+        result = self.run_launcher("install_windows.bat")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.calls.read_text()
+        self.assertIn(str(self.project / "requirements" / "windows-conda.txt"), calls)
+        self.assertIn(str(self.project / "requirements" / "windows-demo.txt"), calls)
+
     def test_install_gives_large_downloads_more_time_and_resume_attempts(self):
         result = self.run_launcher("install_windows.bat")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -128,7 +135,7 @@ class WindowsLaunchers(unittest.TestCase):
         self.assertIn("--resume-retries 20", pip_call)
         # The Conda package must support the resume flag on a fresh PC too.
         self.assertIn(
-            "pip=25.2", (self.project / "requirements-windows-conda.txt").read_text()
+            "pip=25.2", (self.project / "requirements" / "windows-conda.txt").read_text()
         )
 
     def test_cli_demo_forwards_device_and_bounded_input_arguments(self):
