@@ -1,57 +1,50 @@
-# Windows one-click demo
+# SRST on Windows 11: quick start
 
-For the full project walkthrough, see [PROJECT_STEP_BY_STEP_EN.md](PROJECT_STEP_BY_STEP_EN.md).
+This is the shortest supported path for the bundled pretrained localization demo and the repaired `fitting.ipynb` notebook. You do not need to train a model.
 
-This path runs the bundled pretrained SRST checkpoint. “Pretrained” means the demo uses `network\experiment1\model_2.pt` directly for inference; it does not start a new 500-epoch training job. It is separate from the historical `environment.yml`, which is a machine-specific Windows export with an obsolete absolute prefix and mixed CUDA package pins.
-The curated environment supports both the scripted demo and the repaired legacy notebook. Full 500-epoch training remains a separate workflow.
+## 1. Install
 
-## Requirement
+1. Extract the ZIP and open the project folder.
+2. If you want GPU localization, install a current NVIDIA driver. If `nvidia-smi` is only available from an Administrator terminal, use an Administrator terminal/VS Code.
+3. Right-click `setup_and_run_demo.bat` and select **Run as administrator**.
 
-The installer uses an existing Miniconda, Anaconda, or Miniforge installation. If none is found and Windows includes `winget`, it attempts a per-user Miniforge installation automatically. For GPU use, Windows 11 needs a current NVIDIA driver. The environment installs the PyTorch 2.8.0 CUDA 12.8 wheel; a separate CUDA Toolkit installation is not required. The installer prints the CUDA runtime/device and, when `nvidia-smi` is available, runs a 9-frame CUDA smoke test. If CUDA is visible only from an elevated terminal, run the installer and VSCode as Administrator; otherwise `auto` deliberately falls back to CPU. On machines without an NVIDIA GPU, the same environment falls back to CPU.
+The installer creates the `srst_demo` Conda environment, installs the PyTorch CUDA 12.8 build, checks the bundled checkpoint, and registers the VS Code/Jupyter kernel. If Conda is missing, it tries to install Miniforge with `winget`; otherwise install Miniconda or Miniforge first and run the installer again.
 
-## Install and run
+## 2. Run GPU localization
 
-For a single install-and-run demo action, double-click `setup_and_run_demo.bat`.
-You can also install once with `install_windows.bat` and launch the scripted
-demo later with `run_demo_windows.bat`.
-
-To use the repaired legacy notebook in VSCode, open the repository folder and
-open `fitting.ipynb`. Select the `SRST (srst_demo)` Python kernel. The notebook
-selects CPU/GPU automatically and loads the same `CNNBiLSTM` checkpoint as the
-scripted demo.
-
-The default run processes the first 20 frames so it finishes quickly. On CUDA, the inference batch size defaults to DECODE's safe automatic probe; on CPU it uses batch size 1. Results are written to `outputs\demo`:
-
-- `emitters.csv`: localized emitters;
-- `emitters.pt`: DECODE `EmitterSet`;
-- `reconstruction.png`: quick visualization;
-- `summary.json`: device, frame count, emitter count, timing, and output paths.
-
-To process the complete TIFF stack:
+Open a terminal in the project folder after installation:
 
 ```bat
-run_demo_windows.bat --max-frames 0
+run_demo_windows.bat --device cuda:0 --max-frames 20
 ```
 
-To force CPU or a specific GPU:
+Use `--device auto` if the same folder must also run on CPU-only machines:
 
 ```bat
-run_demo_windows.bat --device cpu
-run_demo_windows.bat --device cuda:0
+run_demo_windows.bat --device auto --max-frames 20
 ```
 
-If a low-memory GPU still runs out of memory, force a smaller batch:
+The result is in `outputs\demo`. Open `outputs\demo\summary.json` and check:
 
-```bat
-run_demo_windows.bat --device cuda:0 --batch-size 1
+```json
+"device": "cuda:0",
+"cuda_available": true
 ```
 
-The launcher uses `Net.CNNLSTM.CNNBiLSTM`, which matches `network\experiment1\model_2.pt`. The generic DECODE `SigmaMUNet` inference entry point is not compatible with this checkpoint.
+`cuda_device_name` gives the GPU name. If GPU memory is low, add `--batch-size 1`.
 
-## Troubleshooting
+## 3. Run the notebook in VS Code
 
-- If Conda is not found, install Miniconda and run the installer again.
-- If `nvidia-smi` works only in an Administrator terminal, run `install_windows.bat` and VSCode as Administrator so the notebook inherits GPU access.
-- If `nvidia-smi` works but the installer reports that PyTorch cannot access CUDA, update the NVIDIA driver and rerun `install_windows.bat`.
-- If CUDA is unavailable, omit `--device cuda:0`; `auto` selects CPU automatically.
-- If an old `srst_demo` environment is present, rerun `install_windows.bat` to update it.
+1. Open the project folder in VS Code and open `fitting.ipynb`.
+2. Select the kernel **SRST (srst_demo)**.
+3. Run code cells in this order: **0 → 2 → 3 → 5 → 7 → 9 → 11**.
+
+The notebook selects CUDA automatically when PyTorch can see the GPU; otherwise it uses CPU. Cell 5 performs localization; cells 7, 9, and 11 display and filter the predicted molecule positions.
+
+## If something fails
+
+- `conda not found`: install Miniconda/Miniforge, then rerun `install_windows.bat`.
+- `CUDA was requested, but no CUDA device is available`: run `nvidia-smi`, update the NVIDIA driver, and run the installer/VS Code as Administrator if required.
+- Out of memory: use `--batch-size 1` or run with `--device cpu`.
+
+For the same instructions in English and Chinese, see [PROJECT_STEP_BY_STEP_EN.md](PROJECT_STEP_BY_STEP_EN.md) and [PROJECT_STEP_BY_STEP_CN.md](PROJECT_STEP_BY_STEP_CN.md).
