@@ -27,7 +27,7 @@ Run the launcher from the extracted folder. Do not run it inside the ZIP or copy
 
 Double-click **`start_srst.bat`**. The terminal automatically:
 
-1. Prepares the environment manager and creates a project-local Python 3.9 environment.
+1. Prepares the environment manager and creates an isolated Conda environment named `srst_demo` with Python 3.9.
 2. Installs the compiled `spline` package, PyTorch, scientific dependencies and Jupyter.
 3. Checks dependencies, registers **SRST (srst_demo)** and tests inline plotting in the real notebook kernel.
 4. Runs the supplied model on nine example frames to check localization.
@@ -82,7 +82,24 @@ A successful repair opens the notebook. If it still fails, retain `srst.log` and
 
 ## 7. Environment and results
 
-The isolated environment lives in **`.runtime/srst_demo`**. It is separate from Conda base and other environments. Setup does not change system Python, PATH or shell configuration. GPU use requires a compatible NVIDIA driver; PyTorch includes its CUDA runtime.
+The isolated Conda environment is named **`srst_demo`**. It lives in a directory searched by Conda, preferably `%USERPROFILE%\.conda\envs\srst_demo`. The terminal shows the selected path, and `.runtime/environment.json` records it for this project.
+
+In an initialized Conda terminal, such as Miniconda / Anaconda Prompt, use:
+
+```bat
+conda env list
+conda activate srst_demo
+```
+
+The list shows its name and path. For everyday use, double-click `start_srst.bat`; manual activation is unnecessary. Setup does not change system Python, PATH or shell configuration. GPU use requires a compatible NVIDIA driver; PyTorch includes its CUDA runtime.
+
+Without an existing Conda installation, portable Micromamba creates the same named environment in the standard per-user Conda environment directory. The launcher works the same way. To list environments manually from the project terminal, use:
+
+```powershell
+.\.runtime\micromamba.exe --root-prefix "$env:USERPROFILE\.conda" env list
+```
+
+An environment installed by the old project-local setup is cloned to the named environment and checked again. The original remains available. Setup stops if an unrelated `srst_demo` environment already exists; rename that environment before running this installer.
 
 The nine-frame installation check writes **`outputs/installation_check`**. Notebook plots appear in the page and can be saved as needed.
 

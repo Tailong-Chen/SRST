@@ -27,7 +27,7 @@
 
 双击 **`start_srst.bat`**。终端窗口会自动完成以下步骤：
 
-1. 准备环境管理器，在项目下创建独立 Python 3.9 环境。
+1. 准备环境管理器，创建名为 `srst_demo` 的独立 Conda 环境，使用 Python 3.9。
 2. 安装编译版 `spline`、PyTorch、科学计算依赖和 Jupyter。
 3. 检查依赖，注册 **SRST (srst_demo)** 内核，并验证 Notebook 可以输出图片。
 4. 使用附带模型处理 9 帧示例数据，检查定位流程。
@@ -84,7 +84,24 @@
 
 ## 7. 环境和结果保存在哪里
 
-环境安装在项目目录的 **`.runtime/srst_demo`**，与 Conda 的 `base` 和其他环境隔离。启动器不会修改系统 Python、PATH 或终端配置；GPU 使用需要兼容的 NVIDIA 驱动，PyTorch 自带 CUDA 运行库。
+安装后得到的是名为 **`srst_demo`** 的独立 Conda 环境，与 `base` 和其他环境隔离。环境位于 Conda 能检索的环境目录，通常优先使用用户目录 `%USERPROFILE%\.conda\envs\srst_demo`；实际位置会显示在安装终端中，并记录在项目的 `.runtime/environment.json`。
+
+在 **Miniconda / Anaconda Prompt** 等已配置 Conda 的终端中，可以像自己创建的环境一样检索和激活：
+
+```bat
+conda env list
+conda activate srst_demo
+```
+
+列表中会显示 `srst_demo` 名称和环境路径。日常运行仍然双击 `start_srst.bat`，无需手动激活。启动器不会修改系统 Python、PATH 或终端配置；GPU 使用需要兼容的 NVIDIA 驱动，PyTorch 自带 CUDA 运行库。
+
+如果电脑没有预装 Conda，启动器用便携 Micromamba 在用户的标准 Conda 环境目录创建同名环境。双击使用方式相同；手动检索时可在项目终端执行：
+
+```powershell
+.\.runtime\micromamba.exe --root-prefix "$env:USERPROFILE\.conda" env list
+```
+
+旧版本安装在项目内的环境会先克隆到命名环境，再重新检查，旧副本保留。若已存在一个未由本安装器创建的 `srst_demo`，启动器会停止并提示；先为自己的同名环境更名，再重新启动。
 
 首次安装的 9 帧检查结果保存在 **`outputs/installation_check`**。Notebook 的图像结果显示在页面内，可以按需保存 Notebook 或图片。
 

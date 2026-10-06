@@ -37,7 +37,7 @@ class WindowsLaunchers(unittest.TestCase):
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text("fixture", encoding="utf-8")
         self.conda_root = Path(self.tmp.name) / "Conda with spaces"
-        self.environment = self.project / ".runtime" / "srst_demo"
+        self.environment = self.conda_root / "envs" / "srst_demo"
         self.environment.mkdir(parents=True)
         (self.environment / "python.exe").write_text("fixture")
         bin_dir = self.conda_root / "condabin"
@@ -46,10 +46,17 @@ class WindowsLaunchers(unittest.TestCase):
         (bin_dir / "conda.bat").write_text(
             '@echo off\n'
             '>>"%SRST_TEST_CALLS%" echo %*\n'
+            'if "%~1"=="info" (\n'
+            '  type "%SRST_TEST_INFO%"\n'
+            '  exit /b 0\n'
+            ')\n'
             'if "%SRST_TEST_FAIL_ENV%"=="1" echo fixture download failed 1>&2\n'
             'if "%~1"=="create" if "%SRST_TEST_FAIL_ENV%"=="1" exit /b 42\n'
             'if "%~1"=="install" if "%SRST_TEST_FAIL_ENV%"=="1" exit /b 42\n'
-            'if "%~1"=="create" type nul > "%SRST_TEST_PYTHON%"\n'
+            'if "%~1"=="create" (\n'
+            '  if not exist "%SRST_TEST_ENV%" mkdir "%SRST_TEST_ENV%"\n'
+            '  type nul > "%SRST_TEST_PYTHON%"\n'
+            ')\n'
             'if "%~1"=="run" if "%SRST_TEST_FAIL_RUN%"=="1" exit /b 43\n'
             ':scan\n'
             'if "%~1"=="" exit /b 0\n'
@@ -59,17 +66,34 @@ class WindowsLaunchers(unittest.TestCase):
             'goto scan\n',
             encoding="ascii",
         )
+        self.info = Path(self.tmp.name) / 'conda-info.json'
+        self.info.write_text(json.dumps({
+            'root_prefix': str(self.conda_root),
+            'envs_dirs': [str(self.conda_root / 'envs')],
+            'envs': [str(self.environment)],
+        }), encoding='utf-8')
+        self.state_file = self.project / '.runtime' / 'environment.json'
+        self.state_file.parent.mkdir()
+        self.state_file.write_text(json.dumps({
+            'schema': 1, 'application': 'SRST', 'name': 'srst_demo',
+            'manager': str(bin_dir / 'conda.bat'),
+            'environment': str(self.environment),
+        }), encoding='utf-8')
         self.env = os.environ.copy()
         self.env.update({
             "CONDA_PREFIX": str(self.conda_root),
             "CONDA_EXE": "",
             "SRST_NO_PAUSE": "1",
             "SRST_TEST_CALLS": str(self.calls),
+            "SRST_TEST_INFO": str(self.info),
+            "SRST_TEST_ENV": str(self.environment),
             "SRST_TEST_PYTHON": str(self.environment / "python.exe"),
             "SRST_TEST_FAIL_ENV": "0",
             "SRST_TEST_FAIL_RUN": "0",
             "SRST_TEST_FAIL_KERNEL": "0",
             "SRST_TEST_FAIL_MODEL": "0",
+            "USERPROFILE": str(Path(self.tmp.name) / 'user profile'),
+            "CONDA_ENVS_PATH": "",
         })
 
     def run_launcher(self, name, *args):
@@ -132,7 +156,7 @@ class WindowsLaunchers(unittest.TestCase):
         result = self.run_script("install_windows.ps1")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = self.calls.read_text()
-        self.assertTrue(calls.startswith("create "), calls)
+        self.assertTrue(any(line.startswith('create ') for line in calls.splitlines()), calls)
         self.assertIn("--no-default-packages", calls)
         self.assertIn("--override-channels", calls)
 
@@ -173,7 +197,10 @@ class WindowsLaunchers(unittest.TestCase):
         executable = self.conda_root / 'condabin' / 'micromamba.bat'
         shutil.copy2(self.conda_root / 'condabin' / 'conda.bat', executable)
         self.env['CONDA_EXE'] = str(executable)
-        (self.environment / 'python.exe').unlink()
+        self.state_file.unlink()
+        self.environment = Path(self.env['USERPROFILE']) / '.conda' / 'envs' / 'srst_demo'
+        self.env['SRST_TEST_ENV'] = str(self.environment)
+        self.env['SRST_TEST_PYTHON'] = str(self.environment / 'python.exe')
         result = self.run_script('install_windows.ps1')
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = self.calls.read_text()
@@ -181,6 +208,9 @@ class WindowsLaunchers(unittest.TestCase):
         self.assertIn('--no-rc', calls)
         self.assertNotIn('--no-default-packages', calls)
         self.assertNotIn('--no-capture-output', calls)
+        self.assertIn('--name srst_demo', calls)
+        self.assertTrue((self.environment / 'python.exe').exists())
+        self.assertTrue(self.ready_file.exists())
 
     def test_failed_environment_check_prevents_notebook_launch(self):
         self.env["SRST_TEST_FAIL_RUN"] = "1"
@@ -193,7 +223,7 @@ class WindowsLaunchers(unittest.TestCase):
         result = self.run_script("run_notebook_windows.ps1")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         calls = self.calls.read_text()
-        self.assertIn(str(self.environment), calls)
+        self.assertIn("--name srst_demo", calls)
         self.assertIn("python -m notebook", calls)
         self.assertIn("fitting.ipynb", calls)
 
@@ -215,7 +245,7 @@ class WindowsLaunchers(unittest.TestCase):
         self.assertTrue((self.environment / "python.exe").exists())
         result = self.run_launcher("start_srst.bat")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        self.assertTrue(self.calls.read_text().startswith("install "))
+        self.assertTrue(any(line.startswith('install ') for line in self.calls.read_text().splitlines()))
         self.assertTrue(self.ready_file.exists())
 
     def test_failed_setup_never_marks_environment_ready(self):
@@ -283,6 +313,49 @@ class WindowsLaunchers(unittest.TestCase):
         self.assertFalse(self.calls.exists())
         self.assertFalse(self.ready_file.exists())
         self.assertIn("Extract the complete SRST folder", result.stdout)
+
+    def test_fresh_install_creates_and_uses_a_named_conda_environment(self):
+        shutil.rmtree(self.environment)
+        self.state_file.unlink()
+        result = self.run_script('install_windows.ps1')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.calls.read_text()
+        create = next(line for line in calls.splitlines() if line.startswith('create '))
+        self.assertIn('--name srst_demo', create)
+        self.assertNotIn('--prefix', create)
+        self.assertIn('run --no-capture-output --name srst_demo python', calls)
+        self.assertTrue(self.ready_file.exists())
+        state = json.loads(self.state_file.read_text(encoding='utf-8-sig'))
+        self.assertEqual(state['environment'], str(self.environment))
+
+    def test_unrelated_named_environment_is_left_untouched(self):
+        self.state_file.unlink()
+        original = (self.environment / 'python.exe').read_bytes()
+        result = self.run_launcher('start_srst.bat')
+        self.assertNotEqual(result.returncode, 0)
+        calls = self.calls.read_text()
+        self.assertNotIn('pip install', calls)
+        self.assertFalse(any(line.startswith(('create ', 'install ')) for line in calls.splitlines()))
+        self.assertEqual((self.environment / 'python.exe').read_bytes(), original)
+        self.assertFalse(self.state_file.exists())
+
+    def test_old_project_environment_is_cloned_to_the_named_environment(self):
+        shutil.rmtree(self.environment)
+        self.state_file.unlink()
+        legacy = self.project / '.runtime' / 'srst_demo'
+        legacy.mkdir()
+        (legacy / 'python.exe').write_text('old environment')
+        (legacy / '.srst-ready.json').write_text(json.dumps({
+            'schema': 1, 'environment': str(legacy), 'signature': 'old setup',
+        }), encoding='utf-8')
+        result = self.run_script('install_windows.ps1')
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        calls = self.calls.read_text()
+        self.assertIn('--clone "' + str(legacy) + '"', calls)
+        self.assertIn('--name srst_demo', calls)
+        self.assertIn('--offline', calls)
+        self.assertTrue(self.ready_file.exists())
+        self.assertTrue((legacy / 'python.exe').exists())
 
 
 if __name__ == "__main__":

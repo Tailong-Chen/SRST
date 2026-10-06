@@ -9,22 +9,39 @@ try {
     }
     Set-Location -LiteralPath $SrstRoot
     Assert-SrstDemoAssets
-    if (Test-Path -LiteralPath $SrstReadyFile) { Remove-Item -LiteralPath $SrstReadyFile }
     $setupSignature = Get-SrstSetupSignature
     Write-Host '[1/5] Preparing the environment manager ...'
     $conda = Get-SrstManager
     if (-not $conda) { $conda = Install-SrstManager }
+    Resolve-SrstEnvironment $conda
+    Save-SrstState $conda
     Write-Host "Environment manager: $conda"
     Write-Host "SRST environment: $SrstEnvironment"
     $env:CONDA_PKGS_DIRS = Join-Path $SrstRoot '.runtime\cache\conda'
     $env:PIP_CACHE_DIR = Join-Path $SrstRoot '.runtime\cache\pip'
+    $legacy = Join-Path $SrstRoot '.runtime\srst_demo'
+    $canClone = $false
+    if (-not (Test-Path -LiteralPath (Join-Path $SrstEnvironment 'python.exe')) -and
+        [IO.Path]::GetFileNameWithoutExtension($conda) -ne 'micromamba' -and
+        (Test-Path -LiteralPath (Join-Path $legacy 'python.exe'))) {
+        try {
+            $legacyReady = Get-Content -LiteralPath (Join-Path $legacy '.srst-ready.json') -Raw -Encoding UTF8 | ConvertFrom-Json
+            $canClone = ($legacyReady.environment -eq $legacy)
+        } catch { }
+    }
+    if ($canClone) {
+        Write-Host 'Migrating the previous project-local environment to the named Conda environment. The original copy is retained.'
+        Invoke-SrstCommand $conda @('create', '--yes', '--name', $SrstEnvironmentName, '--clone', $legacy,
+                                    '--offline', '--no-default-packages', '--override-channels', '--channel', 'conda-forge')
+    }
+    if (Test-Path -LiteralPath $SrstReadyFile) { Remove-Item -LiteralPath $SrstReadyFile }
     Write-Host '[2/5] Installing Python 3.9, compiled spline, PyTorch and Jupyter ...'
     $operation = 'create'
     if (Test-Path -LiteralPath (Join-Path $SrstEnvironment 'python.exe')) { $operation = 'install' }
     # Explicit channels are needed before Conda's pre-command plugins run.
-    $condaArguments = @($operation, '--yes', '--override-channels', '--channel', 'turagalab', '--channel', 'conda-forge', '--prefix', $SrstEnvironment, '--file', (Join-Path $SrstRoot 'requirements\windows-conda.txt'))
+    $condaArguments = @($operation, '--yes', '--override-channels', '--channel', 'turagalab', '--channel', 'conda-forge', '--name', $SrstEnvironmentName, '--file', (Join-Path $SrstRoot 'requirements\windows-conda.txt'))
     if ([IO.Path]::GetFileNameWithoutExtension($conda) -eq 'micromamba') {
-        $condaArguments += @('--no-rc', '--root-prefix', (Join-Path $SrstRoot '.runtime\mamba'))
+        $condaArguments += @('--no-rc', '--root-prefix', $SrstMambaRoot)
     } elseif ($operation -eq 'create') {
         $condaArguments += '--no-default-packages'
     }

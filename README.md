@@ -12,9 +12,9 @@ Super-resolution spatiotemporal information integration (SRST) uses a CNN with b
 2. Double-click **`start_srst.bat`**. Use the same file on every launch.
 3. In the opened `fitting.ipynb`, select **SRST (srst_demo)** and use **Cell > Run All**.
 
-On the first launch, SRST creates an isolated Python 3.9 environment, installs `spline`, PyTorch and Jupyter, verifies the notebook kernel and bundled model, and opens the notebook. Later launches reuse the verified environment and open the notebook directly. Incomplete setup or updated dependency configuration triggers setup again.
+On the first launch, SRST creates an isolated Conda environment named `srst_demo` with Python 3.9, installs `spline`, PyTorch and Jupyter, verifies the notebook kernel and bundled model, and opens the notebook. Later launches reuse the verified environment and open the notebook directly. Incomplete setup or updated dependency configuration triggers setup again.
 
-The launcher finds Conda or downloads portable Micromamba automatically. No model training is needed; inference uses CUDA when available and otherwise CPU.
+The launcher uses an existing Conda installation or downloads portable Micromamba automatically. The environment lives in a standard Conda environment directory, so an existing Conda terminal can find and activate it with `conda env list` and `conda activate srst_demo`. No model training is needed; inference uses CUDA when available and otherwise CPU.
 
 The first installation needs internet access and several GB of downloads. Allow at least 12 GB of free disk space. Installation and launch output is saved in `srst.log`.
 
