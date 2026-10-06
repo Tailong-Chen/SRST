@@ -9,11 +9,14 @@ This guide takes you from a GitHub download to a working environment and the bun
 | Item | Requirement |
 | --- | --- |
 | System | Windows 11 on an x64 computer |
+| Conda | An existing Conda installation: Miniconda, Anaconda or Miniforge |
 | Internet | First-launch access to GitHub, the Conda channels, PyPI and the PyTorch download site |
 | Disk space | At least 12 GB recommended for the environment and download cache |
 | GPU | A compatible NVIDIA GPU is optional; the demo uses CPU when CUDA is unavailable |
 
-Python, Conda, Jupyter and CUDA Toolkit do not need to be installed beforehand. SRST finds an existing Conda installation or downloads a portable environment manager, then creates its own isolated environment. Administrator privileges are normally unnecessary.
+**Install Conda first.** If it is missing, use the [official Miniconda download page](https://www.anaconda.com/download/success) and choose **Miniconda > Windows 64-Bit Graphical Installer**. If Conda is already installed, continue below.
+
+SRST uses the existing Conda installation to create its own environment and installs Python, Jupyter and the other dependencies there. Separate Python, Jupyter and CUDA Toolkit installations and model training are unnecessary. If Conda cannot be found, startup stops with an error and the download URL; no environment manager is downloaded automatically. Administrator privileges are normally unnecessary for the SRST environment setup.
 
 ## 2. Download and extract the project
 
@@ -27,7 +30,7 @@ Run the launcher from the extracted folder. Do not run it inside the ZIP or copy
 
 Double-click **`start_srst.bat`**. The terminal automatically:
 
-1. Prepares the environment manager and creates an isolated Conda environment named `srst_demo` with Python 3.9.
+1. Finds the installed Conda and creates an isolated environment named `srst_demo` with Python 3.9.
 2. Installs the compiled `spline` package, PyTorch, scientific dependencies and Jupyter.
 3. Checks dependencies, registers **SRST (srst_demo)** and tests inline plotting in the real notebook kernel.
 4. Runs the supplied model on nine example frames to check localization.
@@ -65,6 +68,7 @@ Read the last terminal error. The full installation and launch log is **`srst.lo
 
 | Symptom | Action |
 | --- | --- |
+| Conda not found | Install Windows 64-bit Miniconda from the [official download page](https://www.anaconda.com/download/success), then launch again; if Conda is already installed in a custom location, run the launcher from Miniconda / Anaconda Prompt |
 | Download interrupted but resuming | Leave the window open while the downloaded size increases |
 | Download finally failed | Restore access to the download sites and launch again; completed downloads can be cached, but incomplete progress is not guaranteed across restarts |
 | Model or example file missing | Download and fully extract the project again |
@@ -92,12 +96,6 @@ conda activate srst_demo
 ```
 
 The list shows its name and path. For everyday use, double-click `start_srst.bat`; manual activation is unnecessary. Setup does not change system Python, PATH or shell configuration. GPU use requires a compatible NVIDIA driver; PyTorch includes its CUDA runtime.
-
-Without an existing Conda installation, portable Micromamba creates the same named environment in the standard per-user Conda environment directory. The launcher works the same way. To list environments manually from the project terminal, use:
-
-```powershell
-.\.runtime\micromamba.exe --root-prefix "$env:USERPROFILE\.conda" env list
-```
 
 An environment installed by the old project-local setup is cloned to the named environment and checked again. The original remains available. Setup stops if an unrelated `srst_demo` environment already exists; rename that environment before running this installer.
 

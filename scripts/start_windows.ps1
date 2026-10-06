@@ -8,6 +8,7 @@ try {
     Set-Location -LiteralPath $SrstRoot
     Assert-SrstDemoAssets
     Write-Host 'SRST - fitting.ipynb'
+    Get-SrstRequiredManager | Out-Null
     if (-not $Repair -and (Test-SrstEnvironmentReady)) {
         Write-Host 'The verified environment is ready. Opening the notebook ...'
     } else {

@@ -6,7 +6,6 @@ $SrstEnvironmentName = 'srst_demo'
 $SrstEnvironment = $null
 $SrstReadyFile = $null
 $SrstStateFile = Join-Path $SrstRoot '.runtime\environment.json'
-$SrstMambaRoot = Join-Path $env:USERPROFILE '.conda'
 
 function Get-SrstState {
     try {
@@ -42,13 +41,9 @@ function Test-SrstOwnedEnvironment {
 
 function Resolve-SrstEnvironment {
     param([string]$Manager)
-    if ([IO.Path]::GetFileNameWithoutExtension($Manager) -eq 'micromamba') {
-        $directories = @(Join-Path $SrstMambaRoot 'envs')
-    } else {
-        $info = Invoke-SrstJsonCommand $Manager @('info', '--json')
-        $directories = @($info.envs_dirs)
-        if ($directories.Count -eq 0) { throw 'Conda did not report an environment directory.' }
-    }
+    $info = Invoke-SrstJsonCommand $Manager @('info', '--json')
+    $directories = @($info.envs_dirs)
+    if ($directories.Count -eq 0) { throw 'Conda did not report an environment directory.' }
     # The standard per-user directory is also searched by normal Conda installs.
     # Prefer it to a base installation that may require admin access or be on a small disk.
     $preferred = Join-Path $env:USERPROFILE '.conda\envs'
@@ -163,13 +158,21 @@ function Get-SrstManager {
     }
     $candidates += Join-Path $SrstRoot '.runtime\miniforge3\Scripts\conda.exe'
     $candidates += Join-Path $SrstRoot '.runtime\miniforge3\condabin\conda.bat'
-    $candidates += Join-Path $SrstRoot '.runtime\micromamba.exe'
     foreach ($candidate in $candidates) {
-        if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+        if ([IO.Path]::GetFileName($candidate) -in @('conda.exe', 'conda.bat', '_conda.exe') -and
+            (Test-Path -LiteralPath $candidate -PathType Leaf)) {
             return (Get-Item -LiteralPath $candidate).FullName
         }
     }
     return $null
+}
+
+function Get-SrstRequiredManager {
+    $manager = Get-SrstManager
+    if (-not $manager) {
+        throw "Conda was not found.`nInstall Miniconda or Anaconda first. Recommended Miniconda download: https://www.anaconda.com/download/success`nAfter installation, run start_srst.bat again."
+    }
+    return $manager
 }
 
 function Invoke-SrstJsonCommand {
@@ -211,43 +214,13 @@ function Invoke-SrstCommand {
     }
 }
 
-function Install-SrstManager {
-    $runtime = Join-Path $SrstRoot '.runtime'
-    $executable = Join-Path $runtime 'micromamba.exe'
-    $url = 'https://github.com/mamba-org/micromamba-releases/releases/download/2.9.0-0/micromamba-win-64.exe'
-    $sha256 = 'a6d804394b2418991c4e29562853eaace2f2ce9d9da661a98e74e02e8dbb44b0'
-    New-Item -ItemType Directory -Path $runtime -Force | Out-Null
-    if (-not (Test-Path -LiteralPath $executable) -or
-        (Get-SrstFileHash $executable) -ne $sha256) {
-        Write-Host 'Conda was not found. Downloading official portable Micromamba ...'
-        $partial = "$executable.part"
-        $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
-        if ($curl) {
-            Invoke-SrstCommand $curl.Source @('--fail', '--silent', '--show-error', '--location', '--retry', '3', '--connect-timeout', '30', '--output', $partial, $url)
-        } else {
-            [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
-            Invoke-WebRequest -Uri $url -OutFile $partial -UseBasicParsing
-        }
-        if ((Get-SrstFileHash $partial) -ne $sha256) {
-            throw 'The Micromamba download failed its SHA-256 check. Run the installer again.'
-        }
-        Move-Item -LiteralPath $partial -Destination $executable -Force
-    }
-    Invoke-SrstCommand $executable @('--version')
-    return $executable
-}
-
 function Get-SrstPythonArguments {
     param([string]$Manager)
-    if ([IO.Path]::GetFileNameWithoutExtension($Manager) -eq 'micromamba') {
-        return @('run', '--root-prefix', $SrstMambaRoot, '--name', $SrstEnvironmentName, 'python')
-    }
     return @('run', '--no-capture-output', '--name', $SrstEnvironmentName, 'python')
 }
 
 function Get-SrstInstalledManager {
-    $manager = Get-SrstManager
-    if (-not $manager) { throw 'The SRST environment is not installed. Double-click start_srst.bat.' }
+    $manager = Get-SrstRequiredManager
     Resolve-SrstEnvironment $manager
     if (-not (Test-Path -LiteralPath (Join-Path $SrstEnvironment 'python.exe'))) {
         throw 'The SRST environment is not installed. Double-click start_srst.bat.'

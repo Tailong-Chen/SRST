@@ -8,13 +8,14 @@ Super-resolution spatiotemporal information integration (SRST) uses a CNN with b
 
 **[中文安装与使用说明](docs/windows_zh.md)** · [English guide](docs/windows.md) · [项目结构与开发说明](docs/project.md)
 
-1. [Download the project ZIP](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip) and extract it completely into a writable folder.
-2. Double-click **`start_srst.bat`**. Use the same file on every launch.
-3. In the opened `fitting.ipynb`, select **SRST (srst_demo)** and use **Cell > Run All**.
+1. Have Conda installed. If needed, install **Miniconda for Windows 64-bit** from the [official download page](https://www.anaconda.com/download/success).
+2. [Download the project ZIP](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip) and extract it completely into a writable folder.
+3. Double-click **`start_srst.bat`**. Use the same file on every launch.
+4. In the opened `fitting.ipynb`, select **SRST (srst_demo)** and use **Cell > Run All**.
 
 On the first launch, SRST creates an isolated Conda environment named `srst_demo` with Python 3.9, installs `spline`, PyTorch and Jupyter, verifies the notebook kernel and bundled model, and opens the notebook. Later launches reuse the verified environment and open the notebook directly. Incomplete setup or updated dependency configuration triggers setup again.
 
-The launcher uses an existing Conda installation or downloads portable Micromamba automatically. The environment lives in a standard Conda environment directory, so an existing Conda terminal can find and activate it with `conda env list` and `conda activate srst_demo`. No model training is needed; inference uses CUDA when available and otherwise CPU.
+An existing Conda installation is required. If Conda cannot be found, the launcher stops and shows the official Miniconda download link. The environment lives in a standard Conda environment directory, so a Conda terminal can find and activate it with `conda env list` and `conda activate srst_demo`. No model training is needed; inference uses CUDA when available and otherwise CPU.
 
 The first installation needs internet access and several GB of downloads. Allow at least 12 GB of free disk space. Installation and launch output is saved in `srst.log`.
 

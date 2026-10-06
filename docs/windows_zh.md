@@ -9,11 +9,14 @@
 | 项目 | 要求 |
 | --- | --- |
 | 系统 | Windows 11，x64 电脑 |
+| Conda | 已安装 Conda，Miniconda、Anaconda 或 Miniforge 均可 |
 | 网络 | 首次启动需要联网下载依赖，能访问 GitHub、Conda 渠道、PyPI 和 PyTorch 下载站 |
 | 空间 | 建议至少预留 12 GB，用于独立环境及下载缓存 |
 | 显卡 | 可使用兼容的 NVIDIA GPU；没有可用 GPU 时，演示自动使用 CPU，速度会慢一些 |
 
-不需要提前安装 Python、Conda、Jupyter 或 CUDA Toolkit，也不需要先训练模型。已有 Conda 时，启动器会查找并使用它管理一个新的独立环境；其他情况下，启动器会自动下载便携环境管理器。正常情况下不需要管理员权限。
+**请先安装 Conda。** 尚未安装时，推荐从 [Miniconda 官方下载页](https://www.anaconda.com/download/success)选择 **Miniconda > Windows 64-Bit Graphical Installer**，安装完成后继续下面的步骤。已有 Conda 可直接继续。
+
+启动器使用已有 Conda 创建独立环境，并自动安装该环境所需的 Python、Jupyter 等依赖。无需另行安装 Python、Jupyter 或 CUDA Toolkit，也无需先训练模型。没有检测到 Conda 时，启动器会报错停止并给出上述网址，不会自动下载环境管理器。SRST 环境安装通常不需要管理员权限。
 
 ## 2. 下载并完整解压项目
 
@@ -27,7 +30,7 @@
 
 双击 **`start_srst.bat`**。终端窗口会自动完成以下步骤：
 
-1. 准备环境管理器，创建名为 `srst_demo` 的独立 Conda 环境，使用 Python 3.9。
+1. 查找已安装的 Conda，创建名为 `srst_demo` 的独立环境，使用 Python 3.9。
 2. 安装编译版 `spline`、PyTorch、科学计算依赖和 Jupyter。
 3. 检查依赖，注册 **SRST (srst_demo)** 内核，并验证 Notebook 可以输出图片。
 4. 使用附带模型处理 9 帧示例数据，检查定位流程。
@@ -67,6 +70,7 @@
 
 | 现象 | 处理方法 |
 | --- | --- |
+| 提示未找到 Conda | 从 [Miniconda 官方下载页](https://www.anaconda.com/download/success)安装 Windows 64 位版，然后再次双击启动文件；如已安装到自定义位置，可在 Miniconda / Anaconda Prompt 中运行启动文件 |
 | 下载超时，但正在续传 | 保持窗口打开，观察已下载大小是否继续增加 |
 | 下载最终失败 | 检查网络对下载站的访问，恢复后再次双击 `start_srst.bat`；已经下载完整的缓存可复用，未完成的大文件不保证保留进度 |
 | 提示缺少模型或示例文件 | 重新下载并完整解压项目，确认启动文件和资源都在同一份项目内 |
@@ -94,12 +98,6 @@ conda activate srst_demo
 ```
 
 列表中会显示 `srst_demo` 名称和环境路径。日常运行仍然双击 `start_srst.bat`，无需手动激活。启动器不会修改系统 Python、PATH 或终端配置；GPU 使用需要兼容的 NVIDIA 驱动，PyTorch 自带 CUDA 运行库。
-
-如果电脑没有预装 Conda，启动器用便携 Micromamba 在用户的标准 Conda 环境目录创建同名环境。双击使用方式相同；手动检索时可在项目终端执行：
-
-```powershell
-.\.runtime\micromamba.exe --root-prefix "$env:USERPROFILE\.conda" env list
-```
 
 旧版本安装在项目内的环境会先克隆到命名环境，再重新检查，旧副本保留。若已存在一个未由本安装器创建的 `srst_demo`，启动器会停止并提示；先为自己的同名环境更名，再重新启动。
 

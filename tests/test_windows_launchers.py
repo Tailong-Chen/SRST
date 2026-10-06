@@ -28,6 +28,24 @@ class WindowsLaunchers(unittest.TestCase):
         shutil.copytree(ROOT / "requirements", self.project / "requirements")
         if (ROOT / "scripts").exists():
             shutil.copytree(ROOT / "scripts", self.project / "scripts")
+        # Isolate discovery from the host's Conda installs. Only the fixture's
+        # Conda paths are available; a download trap keeps failure tests offline.
+        common = self.project / 'scripts' / 'windows_common.ps1'
+        with common.open('a', encoding='utf-8') as output:
+            output.write('''
+function Get-PSDrive {
+    param([string]$PSProvider)
+    [pscustomobject]@{Root = $env:SRST_TEST_DRIVE}
+}
+function Get-Command {
+    param([string]$Name, [string]$ErrorAction)
+    if ($Name -in @('conda.exe', 'conda.bat')) { return $null }
+    if ($Name -eq 'curl.exe' -and $env:SRST_TEST_NO_CONDA -eq '1') {
+        return [pscustomobject]@{Source = $env:SRST_TEST_DOWNLOAD_TRAP}
+    }
+    Microsoft.PowerShell.Core\\Get-Command @PSBoundParameters
+}
+''')
         for name in (
             "dataset/frame.tif", "network/experiment1/model_2.pt",
             "network/experiment1/param_run.yaml", "psfmod/spline_calibration_3dcal.mat",
@@ -43,6 +61,11 @@ class WindowsLaunchers(unittest.TestCase):
         bin_dir = self.conda_root / "condabin"
         bin_dir.mkdir(parents=True)
         self.calls = Path(self.tmp.name) / "calls.txt"
+        download_trap = Path(self.tmp.name) / 'download trap.bat'
+        download_trap.write_text(
+            '@echo off\n>>"%SRST_TEST_CALLS%" echo attempted automatic download\nexit /b 90\n',
+            encoding='ascii',
+        )
         (bin_dir / "conda.bat").write_text(
             '@echo off\n'
             '>>"%SRST_TEST_CALLS%" echo %*\n'
@@ -83,6 +106,7 @@ class WindowsLaunchers(unittest.TestCase):
         self.env.update({
             "CONDA_PREFIX": str(self.conda_root),
             "CONDA_EXE": "",
+            "CONDA_PYTHON_EXE": "",
             "SRST_NO_PAUSE": "1",
             "SRST_TEST_CALLS": str(self.calls),
             "SRST_TEST_INFO": str(self.info),
@@ -94,6 +118,11 @@ class WindowsLaunchers(unittest.TestCase):
             "SRST_TEST_FAIL_MODEL": "0",
             "USERPROFILE": str(Path(self.tmp.name) / 'user profile'),
             "CONDA_ENVS_PATH": "",
+            "LOCALAPPDATA": str(Path(self.tmp.name) / 'user profile' / 'AppData' / 'Local'),
+            "ProgramData": str(Path(self.tmp.name) / 'shared data'),
+            "SRST_TEST_DRIVE": str(Path(self.tmp.name) / 'drive'),
+            "SRST_TEST_NO_CONDA": "0",
+            "SRST_TEST_DOWNLOAD_TRAP": str(download_trap),
         })
 
     def run_launcher(self, name, *args):
@@ -193,24 +222,48 @@ class WindowsLaunchers(unittest.TestCase):
             self.calls.read_text(),
         )
 
-    def test_micromamba_uses_its_own_run_and_create_options(self):
-        executable = self.conda_root / 'condabin' / 'micromamba.bat'
-        shutil.copy2(self.conda_root / 'condabin' / 'conda.bat', executable)
-        self.env['CONDA_EXE'] = str(executable)
+    def test_no_conda_stops_before_download_or_environment_changes(self):
         self.state_file.unlink()
-        self.environment = Path(self.env['USERPROFILE']) / '.conda' / 'envs' / 'srst_demo'
-        self.env['SRST_TEST_ENV'] = str(self.environment)
-        self.env['SRST_TEST_PYTHON'] = str(self.environment / 'python.exe')
+        self.env.update({'CONDA_PREFIX': '', 'SRST_TEST_NO_CONDA': '1'})
+        result = self.run_launcher('start_srst.bat')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Conda was not found', result.stdout)
+        self.assertIn('Install Miniconda or Anaconda', result.stdout)
+        self.assertIn('https://www.anaconda.com/download/success', result.stdout)
+        self.assertFalse(self.calls.exists(), result.stdout + result.stderr)
+        self.assertFalse(self.state_file.exists())
+        self.assertFalse(self.ready_file.exists())
+        self.assertFalse((self.project / '.runtime' / 'cache').exists())
+        self.assertIn('Conda was not found',
+                      (self.project / 'srst.log').read_text(encoding='utf-8-sig'))
+
+    def test_direct_installer_requires_existing_conda(self):
+        self.state_file.unlink()
+        self.env.update({'CONDA_PREFIX': '', 'SRST_TEST_NO_CONDA': '1'})
         result = self.run_script('install_windows.ps1')
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-        calls = self.calls.read_text()
-        self.assertIn('--root-prefix', calls)
-        self.assertIn('--no-rc', calls)
-        self.assertNotIn('--no-default-packages', calls)
-        self.assertNotIn('--no-capture-output', calls)
-        self.assertIn('--name srst_demo', calls)
-        self.assertTrue((self.environment / 'python.exe').exists())
-        self.assertTrue(self.ready_file.exists())
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Conda was not found', result.stdout)
+        self.assertIn('https://www.anaconda.com/download/success', result.stdout)
+        self.assertFalse(self.calls.exists(), result.stdout + result.stderr)
+        self.assertFalse(self.state_file.exists())
+
+    def test_previous_micromamba_is_not_accepted_as_conda(self):
+        executable = self.project / '.runtime' / 'micromamba.bat'
+        shutil.copy2(self.conda_root / 'condabin' / 'conda.bat', executable)
+        # Cover an explicit CONDA_EXE override, a cached manager and a leftover
+        # portable executable from the previous installer.
+        (self.project / '.runtime' / 'micromamba.exe').write_text('old portable manager')
+        state = json.loads(self.state_file.read_text())
+        state['manager'] = str(executable)
+        self.state_file.write_text(json.dumps(state), encoding='utf-8')
+        self.env.update({'CONDA_EXE': str(executable), 'CONDA_PREFIX': '',
+                         'SRST_TEST_NO_CONDA': '1'})
+        result = self.run_launcher('start_srst.bat')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Conda was not found', result.stdout)
+        self.assertFalse(self.calls.exists(), result.stdout + result.stderr)
+        self.assertEqual((self.project / '.runtime' / 'micromamba.exe').read_text(),
+                         'old portable manager')
 
     def test_failed_environment_check_prevents_notebook_launch(self):
         self.env["SRST_TEST_FAIL_RUN"] = "1"

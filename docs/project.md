@@ -33,7 +33,7 @@ SRST 的核心流程是：连续 TIFF 帧经过相机校正和裁剪，输入 `C
 | `tests/` | 本项目的 Windows 安装与启动回归测试 |
 | `docs/` | 中英文安装指南和项目说明 |
 
-`.runtime/` 保存本项目的环境位置记录、便携管理器及下载缓存，`outputs/` 是推理结果与验证产物，均不进入 GitHub 源码包。
+`.runtime/` 保存本项目的环境位置记录及下载缓存，`outputs/` 是推理结果与验证产物，均不进入 GitHub 源码包。
 
 ## 推理的数据流
 
@@ -62,7 +62,7 @@ CSV 的 x/y 使用像素坐标、z 使用 nm；重建预览通过 `xyz_nm` 将�
 - `windows-demo.txt`：PyTorch、科学计算和 Notebook 的直接依赖。
 - `windows-constraints.txt`：固定已验证的 Python 依赖版本。
 
-`start_srst.bat` 是唯一的 Windows 批处理入口。环境通过 `--name srst_demo` 创建，优先放在 Conda 标准用户环境目录，可由 `conda env list` 检索并用 `conda activate srst_demo` 激活。项目的 `.runtime/environment.json` 保存管理器和环境路径，供失败重试识别已开始安装的环境。已有同名且未由 SRST 创建的环境会使安装停止。
+`start_srst.bat` 是唯一的 Windows 批处理入口。启动前必须已有 Conda；未找到时，入口报错停止，输出 Miniconda 官方下载网址，不会自动安装环境管理器。环境通过 `--name srst_demo` 创建，优先放在 Conda 标准用户环境目录，可由 `conda env list` 检索并用 `conda activate srst_demo` 激活。项目的 `.runtime/environment.json` 保存管理器和环境路径，供失败重试识别已开始安装的环境。已有同名且未由 SRST 创建的环境会使安装停止。
 
 安装器在依赖检查、真实 Notebook 内核绘图和 9 帧推理全部通过后，在命名环境内写入 `.srst-ready.json`。该记录包含环境路径以及依赖和安装检查文件的摘要；缺失、损坏或与当前文件不一致时，启动入口重新执行安装。旧项目内环境可离线克隆到命名环境，保留原副本。日常启动刷新内核注册，再打开 Notebook。手动改动环境后可使用 `start_srst.bat -Repair` 强制重新安装和检查。日志统一写入根目录 `srst.log`。
 
