@@ -1,39 +1,89 @@
-# SRST on Windows 11: install and run the notebook
+# SRST: install and run the demo on Windows 11
 
-For Windows 11 x64. Extract the complete project into a writable folder. Python, Conda and Jupyter do not need to be installed beforehand; no model training is required. The first installation needs internet access and several GB of downloads (the CUDA PyTorch wheel is about 3.5 GB). Allow at least 12 GB of free disk space for the environment and download cache.
+This guide takes you from a GitHub download to a working environment and the bundled `fitting.ipynb` demo. The demo uses the supplied model and TIFF to show localization, reconstruction and uncertainty filtering. No model training is needed.
 
-Download the project using **Code > Download ZIP** on [GitHub](https://github.com/Tailong-Chen/SRST), or use the [main branch ZIP](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip). Extract it completely and open the `SRST-main` folder. For a first-install test, use a new folder and let the installer create its own `.runtime` environment.
+**Use one file for both the first launch and later launches: `start_srst.bat`.**
 
-## 1. Install and open the notebook
+## 1. What you need
 
-Double-click `setup_and_run_demo.bat`.
+| Item | Requirement |
+| --- | --- |
+| System | Windows 11 on an x64 computer |
+| Internet | First-launch access to GitHub, the Conda channels, PyPI and the PyTorch download site |
+| Disk space | At least 12 GB recommended for the environment and download cache |
+| GPU | A compatible NVIDIA GPU is optional; the demo uses CPU when CUDA is unavailable |
 
-The launcher finds an existing Conda installation or downloads official portable Micromamba with SHA-256 verification, creates an isolated Python 3.9 environment in `.runtime/srst_demo`, installs the compiled TuragaLab `spline` package and Python dependencies, registers **SRST (srst_demo)**, checks localization on nine example frames, and opens `fitting.ipynb` in your browser. No system Python, PATH or shell configuration changes are required.
+Python, Conda, Jupyter and CUDA Toolkit do not need to be installed beforehand. SRST finds an existing Conda installation or downloads a portable environment manager, then creates its own isolated environment. Administrator privileges are normally unnecessary.
 
-Administrator privileges are normally unnecessary. GPU use requires a compatible NVIDIA driver. The PyTorch wheel includes its CUDA runtime, so a separate CUDA Toolkit is unnecessary. The demo uses CPU automatically when CUDA is unavailable.
+## 2. Download and extract the project
 
-To install without opening Jupyter, double-click `install_windows.bat`. To reopen the notebook later, double-click `run_notebook_windows.bat`.
+On the [GitHub project page](https://github.com/Tailong-Chen/SRST), choose **Code > Download ZIP**, or [download the ZIP directly](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip).
 
-## 2. Run the notebook
+Extract the complete archive into a writable folder and open `SRST-main`. Check that it contains `start_srst.bat`, `fitting.ipynb` and the `dataset`, `network`, `psfmod`, `scripts` and `requirements` folders.
 
-Select the kernel **SRST (srst_demo)**. Use **Cell > Run All**, or execute these code cells in order:
+Run the launcher from the extracted folder. Do not run it inside the ZIP or copy only the launcher. To test first installation on another computer, download and extract a new copy and let it create its own environment.
 
-`0 -> 2 -> 3 -> 5 -> 7 -> 9 -> 11`
+## 3. First launch: let setup finish
 
-The notebook uses the bundled `dataset/frame.tif` and `network/experiment1/model_2.pt`. Cell 5 performs localization; later cells show per-frame detections, reconstruction and uncertainty filtering. The demo uses a batch size of one to avoid large GPU memory probes. CPU processing takes longer.
+Double-click **`start_srst.bat`**. The terminal automatically:
 
-Keep the launcher terminal open while using Jupyter. Press Ctrl+C there when finished. In VS Code, open `fitting.ipynb` and select the same **SRST (srst_demo)** kernel.
+1. Prepares the environment manager and creates a project-local Python 3.9 environment.
+2. Installs the compiled `spline` package, PyTorch, scientific dependencies and Jupyter.
+3. Checks dependencies, registers **SRST (srst_demo)** and tests inline plotting in the real notebook kernel.
+4. Runs the supplied model on nine example frames to check localization.
+5. Starts Jupyter and opens **`fitting.ipynb`** in your browser.
 
-## 3. Troubleshooting and distribution
+The first launch depends mainly on download speed. The CUDA PyTorch wheel is about 3.5 GB. Keep the terminal open while progress continues.
 
-Installation errors remain visible, and the full log is written to `setup_and_run_demo.log`. Rerun the installer after resolving a download or driver problem.
+After a timeout or TLS/SSL EOF warning, `Resuming download` with an increasing downloaded size means the transfer is continuing. Wait for completion. Only act on a final error or failed exit.
 
-- Downloads require access to GitHub, the Conda channels, PyPI and the PyTorch download site.
-- The PyTorch wheel is large. After a timeout or TLS/SSL EOF warning, keep the window open if `Resuming download` appears and the downloaded size increases. The installer allows a 120-second socket timeout, 10 connection retries and 20 resume attempts. If it finally exits with an error, resolve the network issue and rerun; restarting the installer does not guarantee preservation of an incomplete download.
-- If `spline` cannot import, retain the log. Do not substitute an unrelated PyPI package into your system Python.
-- For a CPU check, run `run_demo_windows.bat --device cpu --max-frames 9 --batch-size 1`.
-- Reopen with `run_notebook_windows.bat` to refresh the kernel registration.
+A successful setup record is saved only after all checks pass. An interrupted setup is checked again on the next launch rather than treated as a ready environment.
 
-The installation check writes `outputs/installation_check`. The separate command-line demo remains available through `run_demo_windows.bat`, with normal outputs in `outputs/demo`.
+## 4. Run the notebook
 
-Distribute the complete source, `scripts/`, `requirements/`, notebook, sample TIFF, pretrained model and PSF calibration. Exclude `.runtime/`, `outputs/` and installation logs. The installer uses `requirements/windows-conda.txt` for binary dependencies and `requirements/windows-demo.txt` with `windows-constraints.txt` in the same directory for tested Python package versions. See the [project map](project.md) for entry points and module responsibilities.
+Select **SRST (srst_demo)** as the kernel, then choose **Cell > Run All**. The default inputs are already configured:
+
+| Input | File |
+| --- | --- |
+| Example TIFF | `dataset/frame.tif` |
+| Pretrained model | `network/experiment1/model_2.pt` |
+| Camera, scale and processing parameters | `network/experiment1/param_run.yaml` |
+
+The localization cell displays processing progress. Later cells show per-frame detections, reconstruction and uncertainty filtering. CPU execution takes longer; let the active cell finish before inspecting its results.
+
+You can also run cells sequentially with Shift+Enter. In VS Code, open the same notebook and select **SRST (srst_demo)**.
+
+## 5. Later launches and shutdown
+
+Double-click **`start_srst.bat`** again. A verified environment is reused and the notebook opens directly. Setup runs again when dependencies or setup checks change.
+
+Keep the launcher terminal open while using Jupyter. To finish, press **Ctrl+C** there and confirm shutdown when prompted. Closing the browser tab alone does not stop the server.
+
+## 6. If startup fails
+
+Read the last terminal error. The full installation and launch log is **`srst.log`** in the project folder.
+
+| Symptom | Action |
+| --- | --- |
+| Download interrupted but resuming | Leave the window open while the downloaded size increases |
+| Download finally failed | Restore access to the download sites and launch again; completed downloads can be cached, but incomplete progress is not guaranteed across restarts |
+| Model or example file missing | Download and fully extract the project again |
+| Jupyter started but the browser did not open | Copy the local URL shown in the terminal into your browser |
+| Notebook kernel not selected | Select **SRST (srst_demo)**; launching again also refreshes registration |
+| Imports fail after manual package changes | Run the repair command below to reinstall and verify the environment |
+
+Open a terminal in the project folder and run:
+
+```powershell
+.\start_srst.bat -Repair
+```
+
+A successful repair opens the notebook. If it still fails, retain `srst.log` and check the reported failure stage.
+
+## 7. Environment and results
+
+The isolated environment lives in **`.runtime/srst_demo`**. It is separate from Conda base and other environments. Setup does not change system Python, PATH or shell configuration. GPU use requires a compatible NVIDIA driver; PyTorch includes its CUDA runtime.
+
+The nine-frame installation check writes **`outputs/installation_check`**. Notebook plots appear in the page and can be saved as needed.
+
+For custom data, network changes, training and command-line inference, see the [project guide](project.md).

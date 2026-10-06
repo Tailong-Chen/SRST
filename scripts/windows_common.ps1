@@ -3,6 +3,68 @@ Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 $SrstRoot = Split-Path -Parent $PSScriptRoot
 $SrstEnvironment = Join-Path $SrstRoot '.runtime\srst_demo'
+$SrstReadyFile = Join-Path $SrstEnvironment '.srst-ready.json'
+
+function Get-SrstFileHash {
+    param([string]$Path)
+    $stream = [IO.File]::OpenRead($Path)
+    $algorithm = [Security.Cryptography.SHA256]::Create()
+    try {
+        return ([BitConverter]::ToString($algorithm.ComputeHash($stream))).Replace('-', '')
+    } finally {
+        $algorithm.Dispose()
+        $stream.Dispose()
+    }
+}
+
+function Assert-SrstDemoAssets {
+    if (-not [Environment]::Is64BitOperatingSystem -or
+        ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432 -ne 'AMD64')) {
+        throw 'SRST requires x64 Windows.'
+    }
+    foreach ($asset in @('dataset\frame.tif', 'network\experiment1\model_2.pt',
+                          'network\experiment1\param_run.yaml', 'psfmod\spline_calibration_3dcal.mat', 'fitting.ipynb')) {
+        if (-not (Test-Path -LiteralPath (Join-Path $SrstRoot $asset) -PathType Leaf)) {
+            throw "Required demo asset is missing: $asset. Extract the complete SRST folder."
+        }
+    }
+}
+
+function Get-SrstSetupSignature {
+    $parts = foreach ($relative in @('requirements\windows-conda.txt', 'requirements\windows-demo.txt',
+                                    'requirements\windows-constraints.txt', 'scripts\install_windows.ps1',
+                                    'scripts\windows_common.ps1', 'scripts\check_notebook_kernel.py')) {
+        $file = Join-Path $SrstRoot $relative
+        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
+            throw "Required setup file is missing: $relative. Extract the complete SRST folder."
+        }
+        Get-SrstFileHash $file
+    }
+    return ($parts -join '|')
+}
+
+function Test-SrstEnvironmentReady {
+    if (-not (Test-Path -LiteralPath $SrstReadyFile -PathType Leaf) -or
+        -not (Test-Path -LiteralPath (Join-Path $SrstEnvironment 'python.exe') -PathType Leaf) -or
+        -not (Get-SrstManager)) { return $false }
+    try {
+        $ready = Get-Content -LiteralPath $SrstReadyFile -Raw -Encoding UTF8 | ConvertFrom-Json
+        return ($ready.schema -eq 1 -and $ready.environment -eq $SrstEnvironment -and
+                $ready.signature -eq (Get-SrstSetupSignature))
+    } catch {
+        return $false
+    }
+}
+
+function Set-SrstEnvironmentReady {
+    param([string]$Signature)
+    New-Item -ItemType Directory -Path $SrstEnvironment -Force | Out-Null
+    $ready = [ordered]@{schema = 1; environment = $SrstEnvironment; signature = $Signature;
+                       completedAtUTC = [DateTime]::UtcNow.ToString('o')}
+    $partial = "$SrstReadyFile.tmp"
+    $ready | ConvertTo-Json | Set-Content -LiteralPath $partial -Encoding UTF8
+    Move-Item -LiteralPath $partial -Destination $SrstReadyFile -Force
+}
 
 function Get-SrstManager {
     $candidates = @()
@@ -69,7 +131,7 @@ function Install-SrstManager {
     $sha256 = 'a6d804394b2418991c4e29562853eaace2f2ce9d9da661a98e74e02e8dbb44b0'
     New-Item -ItemType Directory -Path $runtime -Force | Out-Null
     if (-not (Test-Path -LiteralPath $executable) -or
-        (Get-FileHash -LiteralPath $executable -Algorithm SHA256).Hash -ne $sha256) {
+        (Get-SrstFileHash $executable) -ne $sha256) {
         Write-Host 'Conda was not found. Downloading official portable Micromamba ...'
         $partial = "$executable.part"
         $curl = Get-Command curl.exe -ErrorAction SilentlyContinue
@@ -79,7 +141,7 @@ function Install-SrstManager {
             [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
             Invoke-WebRequest -Uri $url -OutFile $partial -UseBasicParsing
         }
-        if ((Get-FileHash -LiteralPath $partial -Algorithm SHA256).Hash -ne $sha256) {
+        if ((Get-SrstFileHash $partial) -ne $sha256) {
             throw 'The Micromamba download failed its SHA-256 check. Run the installer again.'
         }
         Move-Item -LiteralPath $partial -Destination $executable -Force
@@ -99,7 +161,7 @@ function Get-SrstPythonArguments {
 function Get-SrstInstalledManager {
     $manager = Get-SrstManager
     if (-not $manager -or -not (Test-Path -LiteralPath (Join-Path $SrstEnvironment 'python.exe'))) {
-        throw 'The SRST environment is not installed. Double-click install_windows.bat first.'
+        throw 'The SRST environment is not installed. Double-click start_srst.bat.'
     }
     return $manager
 }

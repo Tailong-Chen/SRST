@@ -6,9 +6,8 @@ SRST 的核心流程是：连续 TIFF 帧经过相机校正和裁剪，输入 `C
 
 | 需求 | 入口 |
 | --- | --- |
-| 首次安装并运行 Notebook | 根目录 `setup_and_run_demo.bat`，见[中文安装说明](windows_zh.md) |
-| 已安装后打开 Notebook | `run_notebook_windows.bat` |
-| 批量推理和导出结果 | `run_demo_windows.bat` / `demo.py` |
+| 首次安装或日常打开 Notebook | 根目录 `start_srst.bat`，见[中文安装说明](windows_zh.md) |
+| 批量推理和导出结果 | `demo.py` / `scripts/run_demo_windows.ps1` |
 | 修改网络 | `Net/CNNLSTM.py`、`Net/Unet.py` |
 | 修改训练及模拟 | `train.py`、`generic/` |
 | 修改安装依赖 | `requirements/` |
@@ -29,7 +28,7 @@ SRST 的核心流程是：连续 TIFF 帧经过相机校正和裁剪，输入 `C
 | `dataset/` | 演示 TIFF |
 | `network/experiment1/` | 预训练权重和参数 |
 | `psfmod/` | PSF spline 标定数据 |
-| `scripts/` | Windows 安装、启动、环境检测及真实 Notebook 内核检查 |
+| `scripts/` | `start_windows.ps1` 统一调度安装和 Notebook；其余脚本提供安装、推理、内核检查等内部实现 |
 | `requirements/` | Conda 二进制依赖、Python 依赖和已验证版本约束 |
 | `tests/` | 本项目的 Windows 安装与启动回归测试 |
 | `docs/` | 中英文安装指南和项目说明 |
@@ -62,6 +61,14 @@ CSV 的 x/y 使用像素坐标、z 使用 nm；重建预览通过 `xyz_nm` 将�
 - `windows-conda.txt`：Python 3.9、编译版 `spline` 和 pip。
 - `windows-demo.txt`：PyTorch、科学计算和 Notebook 的直接依赖。
 - `windows-constraints.txt`：固定已验证的 Python 依赖版本。
+
+`start_srst.bat` 是唯一的 Windows 批处理入口。安装器在依赖检查、真实 Notebook 内核绘图和 9 帧推理全部通过后，写入 `.runtime/srst_demo/.srst-ready.json`。该记录包含环境路径以及依赖和安装检查文件的摘要；缺失、损坏或与当前文件不一致时，启动入口重新执行安装。日常启动刷新内核注册，再打开 Notebook。手动改动环境后可使用 `start_srst.bat -Repair` 强制重新安装和检查。日志统一写入根目录 `srst.log`。
+
+开发时可直接调用内部脚本。以下 CPU 检查仍使用项目独立环境：
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/run_demo_windows.ps1 --device cpu --max-frames 9 --batch-size 1
+```
 
 在 SRST 环境中，从项目根目录运行本项目的启动测试：
 

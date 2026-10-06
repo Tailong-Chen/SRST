@@ -1,47 +1,91 @@
-# SRST Windows 11 一键安装与 Notebook 演示
+# SRST：在 Windows 11 上安装并运行演示
 
-适用于 Windows 11 x64。将完整项目解压到可写目录后即可安装，无需预先配置 Python、Conda 或 Jupyter，也不需要训练模型。首次安装需联网下载数 GB 的依赖，其中 CUDA 版 PyTorch 约 3.5 GB；建议为环境和下载缓存预留至少 12 GB 空间。
+本说明的目的，是让你从 GitHub 下载项目后，自动配置所需环境，并使用附带模型运行 `fitting.ipynb`，查看分子定位、超分辨重建和不确定度筛选结果。演示所需的数据、模型和 PSF 标定文件已随项目提供。
 
-从 [GitHub 项目页](https://github.com/Tailong-Chen/SRST) 选择 **Code > Download ZIP**，或直接[下载 main 分支 ZIP](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip)。完整解压后进入 `SRST-main` 文件夹。测试首次安装时请解压到一个新目录，不要复制其他电脑的 `.runtime` 环境；项目会在这个目录下创建自己的环境。
+**只需要记住一个启动文件：`start_srst.bat`。首次使用和以后使用，都双击同一个文件。**
 
-## 1. 一键安装并打开 Notebook
+## 1. 开始前准备什么
 
-双击 `setup_and_run_demo.bat`。
+| 项目 | 要求 |
+| --- | --- |
+| 系统 | Windows 11，x64 电脑 |
+| 网络 | 首次启动需要联网下载依赖，能访问 GitHub、Conda 渠道、PyPI 和 PyTorch 下载站 |
+| 空间 | 建议至少预留 12 GB，用于独立环境及下载缓存 |
+| 显卡 | 可使用兼容的 NVIDIA GPU；没有可用 GPU 时，演示自动使用 CPU，速度会慢一些 |
 
-脚本会自动完成：
+不需要提前安装 Python、Conda、Jupyter 或 CUDA Toolkit，也不需要先训练模型。已有 Conda 时，启动器会查找并使用它管理一个新的独立环境；其他情况下，启动器会自动下载便携环境管理器。正常情况下不需要管理员权限。
 
-1. 查找已有 Conda；没有时下载官方便携 Micromamba，并验证 SHA-256。
-2. 在项目的 `.runtime/srst_demo` 创建独立 Python 3.9 环境。
-3. 从 TuragaLab Conda 渠道安装预编译的 `spline`，再安装 PyTorch、科学计算及 Jupyter 依赖。
-4. 注册 `SRST (srst_demo)` 内核，并用附带模型处理 9 帧，检查定位流程。
-5. 在浏览器打开 `fitting.ipynb`。
+## 2. 下载并完整解压项目
 
-正常情况下不需要管理员权限，也不修改系统 Python、PATH 或终端配置。GPU 运行需要兼容的 NVIDIA 驱动；PyTorch 自带 CUDA 运行库，无需单独安装 CUDA Toolkit。没有可用 GPU 时自动使用 CPU。
+打开 [GitHub 项目页](https://github.com/Tailong-Chen/SRST)，选择 **Code > Download ZIP**，或[直接下载 ZIP](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip)。
 
-如果只想安装，双击 `install_windows.bat`。安装完成后再双击 `run_notebook_windows.bat` 打开 Notebook。
+将 ZIP 完整解压到你能读写的目录，进入 `SRST-main` 文件夹。确认其中有 `start_srst.bat`、`fitting.ipynb` 和 `dataset`、`network`、`psfmod`、`scripts`、`requirements` 等目录，然后继续。
 
-## 2. 运行 Notebook
+**请先解压，不要直接在压缩包内运行启动文件，也不要只复制启动文件。** 测试另一台电脑的首次安装时，使用新下载并解压的项目，让它自己建立环境。
 
-确认内核为 **SRST (srst_demo)**，然后选择 **Cell → Run All**，或依次运行代码单元：
+## 3. 首次启动：等待环境准备完成
 
-`0 → 2 → 3 → 5 → 7 → 9 → 11`
+双击 **`start_srst.bat`**。终端窗口会自动完成以下步骤：
 
-Notebook 使用附带的 `dataset/frame.tif` 和 `network/experiment1/model_2.pt`。第 5 个单元执行定位，后续单元显示单帧结果、重建图和不确定度筛选结果。默认批量为 1，避免 GPU 的大批量显存探测。CPU 处理会较慢。
+1. 准备环境管理器，在项目下创建独立 Python 3.9 环境。
+2. 安装编译版 `spline`、PyTorch、科学计算依赖和 Jupyter。
+3. 检查依赖，注册 **SRST (srst_demo)** 内核，并验证 Notebook 可以输出图片。
+4. 使用附带模型处理 9 帧示例数据，检查定位流程。
+5. 启动 Jupyter，在浏览器中打开 **`fitting.ipynb`**。
 
-使用 Jupyter 时保持启动终端打开；结束后在终端按 Ctrl+C 停止服务器。
+首次启动时间主要取决于下载速度。CUDA 版 PyTorch 的下载量约为 3.5 GB；终端仍在下载或显示进度时，保持窗口打开并等待。
 
-在 VS Code 中也可以直接打开 `fitting.ipynb`，选择 **SRST (srst_demo)** 内核运行。
+出现 `Connection timed out` 或 `TLS/SSL ... EOF` 后，如果随后显示 `Resuming download`，且已下载大小继续增加，表示正在自动续传。此时继续等待即可。最终出现 `ERROR` 或失败退出时，再按下面的失败处理步骤操作。
 
-## 3. 安装失败时
+只有全部安装检查通过后，才会保存安装完成记录。安装中途失败时，下次双击仍会执行安装检查，不会直接使用未完成的环境。
 
-窗口会保留错误信息，完整安装日志位于 `setup_and_run_demo.log`。修正网络或驱动问题后，可以再次运行安装入口。
+## 4. 在 Notebook 中运行演示
 
-- 下载失败：确认能够访问 GitHub、Conda 渠道、PyPI 和 PyTorch 下载站。
-- PyTorch 下载较大，出现 `Connection timed out`、`TLS/SSL ... EOF` 后，如果仍显示 `Resuming download` 且已下载大小继续增加，表示正在续传，保持窗口打开即可。新版安装器将下载超时设为 120 秒、连接重试设为 10 次、续传尝试设为 20 次。只有最终出现 `ERROR` 或安装失败退出，才需要处理网络并重试；重新启动安装器不保证保留未完成的大文件进度。
-- `spline` 导入失败：保留日志；不要把普通 PyPI 的同名包作为替代品安装到系统 Python。
-- GPU 显存不足：先用命令行 `run_demo_windows.bat --device cpu --max-frames 9 --batch-size 1` 检查 CPU 路径。
-- Notebook 找不到内核：重新运行 `run_notebook_windows.bat`，它会刷新内核注册。
+浏览器打开 Notebook 后，确认内核为 **SRST (srst_demo)**，然后选择顶部菜单 **Cell > Run All**，依次运行所有单元。
 
-安装定位检查的结果位于 `outputs/installation_check`。普通命令行 demo 仍可通过 `run_demo_windows.bat` 运行，默认结果位于 `outputs/demo`。
+演示已经配置好默认输入，你可以先完整运行一次，无需修改路径：
 
-分发时包含完整源码、`scripts/`、`requirements/`、Notebook、示例 TIFF、模型和 PSF 标定文件。安装器使用 `requirements/windows-conda.txt` 和 `requirements/windows-demo.txt`，通过同目录的 `windows-constraints.txt` 固定已验证的 Python 依赖版本。项目结构和各入口用途见[项目说明](project.md)。
+| 输入 | 文件 |
+| --- | --- |
+| 示例图像 | `dataset/frame.tif` |
+| 预训练模型 | `network/experiment1/model_2.pt` |
+| 相机、尺度和处理参数 | `network/experiment1/param_run.yaml` |
+
+运行定位单元时会显示处理进度。后面的单元会显示单帧定位结果、重建图和不确定度筛选结果。CPU 运行较慢，等待当前单元完成后再查看结果。
+
+也可以使用 Shift+Enter 逐个运行代码单元。使用 VS Code 时，打开同一份 `fitting.ipynb`，选择 **SRST (srst_demo)** 内核即可。
+
+## 5. 以后使用和退出
+
+以后仍然双击 **`start_srst.bat`**。已通过检查的环境会被复用，直接打开 Notebook，不会每次重新安装依赖。依赖或安装检查文件更新后，启动器会重新执行准备和检查。
+
+使用 Notebook 时保持启动终端打开。结束后在终端按 **Ctrl+C**，按提示确认停止 Jupyter，再关闭窗口。仅关闭浏览器页面不会自动停止服务器。
+
+## 6. 启动失败时怎么处理
+
+先看终端最后的错误信息；完整安装和启动日志位于项目根目录 **`srst.log`**。
+
+| 现象 | 处理方法 |
+| --- | --- |
+| 下载超时，但正在续传 | 保持窗口打开，观察已下载大小是否继续增加 |
+| 下载最终失败 | 检查网络对下载站的访问，恢复后再次双击 `start_srst.bat`；已经下载完整的缓存可复用，未完成的大文件不保证保留进度 |
+| 提示缺少模型或示例文件 | 重新下载并完整解压项目，确认启动文件和资源都在同一份项目内 |
+| 终端显示 Jupyter 已启动，但浏览器没有打开 | 将终端显示的本地访问链接复制到浏览器 |
+| Notebook 内核未选中 | 在 Notebook 中选择 **SRST (srst_demo)**；重新启动入口也会刷新内核注册 |
+| 已安装后手动改过依赖，出现导入错误 | 使用下面的修复命令，重新安装并执行环境检查 |
+
+修复环境时，在项目文件夹空白处右键，选择 **在终端中打开**，执行：
+
+```powershell
+.\start_srst.bat -Repair
+```
+
+修复成功后会自动打开 Notebook。如果仍然失败，保留 `srst.log`，根据其中标出的失败阶段继续排查。
+
+## 7. 环境和结果保存在哪里
+
+环境安装在项目目录的 **`.runtime/srst_demo`**，与 Conda 的 `base` 和其他环境隔离。启动器不会修改系统 Python、PATH 或终端配置；GPU 使用需要兼容的 NVIDIA 驱动，PyTorch 自带 CUDA 运行库。
+
+首次安装的 9 帧检查结果保存在 **`outputs/installation_check`**。Notebook 的图像结果显示在页面内，可以按需保存 Notebook 或图片。
+
+需要更换自己的数据、修改网络、训练或使用命令行推理时，继续阅读[项目结构与开发说明](project.md)。

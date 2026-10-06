@@ -1,21 +1,16 @@
-param([switch]$SkipSmokeTest)
+param([switch]$SkipSmokeTest, [switch]$NoTranscript)
 . (Join-Path $PSScriptRoot 'windows_common.ps1')
-$log = Join-Path $SrstRoot 'setup_and_run_demo.log'
+$log = Join-Path $SrstRoot 'srst.log'
 $transcriptStarted = $false
 try {
-    Start-Transcript -Path $log -Append | Out-Null
-    $transcriptStarted = $true
+    if (-not $NoTranscript) {
+        Start-Transcript -Path $log -Append | Out-Null
+        $transcriptStarted = $true
+    }
     Set-Location -LiteralPath $SrstRoot
-    if (-not [Environment]::Is64BitOperatingSystem -or
-        ($env:PROCESSOR_ARCHITECTURE -ne 'AMD64' -and $env:PROCESSOR_ARCHITEW6432 -ne 'AMD64')) {
-        throw 'This installer requires x64 Windows.'
-    }
-    foreach ($asset in @('dataset\frame.tif', 'network\experiment1\model_2.pt',
-                          'network\experiment1\param_run.yaml', 'psfmod\spline_calibration_3dcal.mat', 'fitting.ipynb')) {
-        if (-not (Test-Path -LiteralPath (Join-Path $SrstRoot $asset))) {
-            throw "Required demo asset is missing: $asset. Extract the complete SRST folder."
-        }
-    }
+    Assert-SrstDemoAssets
+    if (Test-Path -LiteralPath $SrstReadyFile) { Remove-Item -LiteralPath $SrstReadyFile }
+    $setupSignature = Get-SrstSetupSignature
     Write-Host '[1/5] Preparing the environment manager ...'
     $conda = Get-SrstManager
     if (-not $conda) { $conda = Install-SrstManager }
@@ -50,9 +45,10 @@ try {
         Write-Host 'Localization check was explicitly skipped.'
     } else {
         Invoke-SrstCommand $conda ($run + @('demo.py', '--device', 'auto', '--max-frames', '9', '--batch-size', '1', '--output', (Join-Path $SrstRoot 'outputs\installation_check')))
+        Set-SrstEnvironmentReady $setupSignature
     }
     Write-Host ''
-    Write-Host 'Installation complete. Double-click run_notebook_windows.bat to open fitting.ipynb.'
+    Write-Host 'Environment checks finished. Use start_srst.bat to open fitting.ipynb.'
     Write-Host 'In VS Code, select the kernel SRST (srst_demo). No model training is required.'
 } catch {
     Write-Host "[ERROR] $($_.Exception.Message)" -ForegroundColor Red
