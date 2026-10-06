@@ -54,6 +54,8 @@ Open `summary.json`. A successful GPU run contains:
 
 `cuda_device_name` identifies the selected GPU. If `cuda:0` fails, run `nvidia-smi`, update the NVIDIA driver, and rerun the installer from an Administrator terminal when necessary.
 
+If the window closes before you can read the message, run `cmd /k setup_and_run_demo.bat` from the project folder. The launcher keeps the window open and writes `setup_and_run_demo.log` beside the batch files.
+
 ## 3. Run the old notebook in VS Code
 
 1. Open the extracted project folder in VS Code.

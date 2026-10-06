@@ -33,6 +33,8 @@ The result is in `outputs\demo`. Open `outputs\demo\summary.json` and check:
 
 `cuda_device_name` gives the GPU name. If GPU memory is low, add `--batch-size 1`.
 
+If a double-clicked window still closes, open a terminal in the project folder and run `cmd /k setup_and_run_demo.bat`. The launcher keeps the window open and writes `setup_and_run_demo.log` beside the batch files.
+
 ## 3. Run the notebook in VS Code
 
 1. Open the project folder in VS Code and open `fitting.ipynb`.

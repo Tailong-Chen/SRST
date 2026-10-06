@@ -54,6 +54,8 @@ run_demo_windows.bat --device cuda:0 --max-frames 20 --batch-size 1
 
 `cuda_device_name` 会显示实际 GPU 名称。如果 `cuda:0` 报错，先运行 `nvidia-smi`，更新 NVIDIA 驱动；如果 GPU 只在管理员终端可见，请用管理员权限运行安装器和 VS Code。
 
+如果双击后窗口仍然关闭，请在项目文件夹打开终端并运行 `cmd /k setup_and_run_demo.bat`。启动器会保持窗口，并在批处理文件旁边写入 `setup_and_run_demo.log`。
+
 ## 3. 在 VS Code 运行旧 Notebook
 
 1. 用 VS Code 打开解压后的项目文件夹。
