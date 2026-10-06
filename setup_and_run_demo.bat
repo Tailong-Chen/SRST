@@ -7,16 +7,16 @@ set "PUSHD_OK=1"
 set "LOG_FILE=%~dp0setup_and_run_demo.log"
 >"%LOG_FILE%" echo SRST setup started at %DATE% %TIME%
 echo [1/2] Installing or updating the srst_demo environment ...
-call install_windows.bat
+call install_windows.bat > "%LOG_FILE%" 2>&1
 set "RC=%ERRORLEVEL%"
->>"%LOG_FILE%" echo install_windows.bat exit code: %RC%
 if not "%RC%"=="0" goto :fail
+type "%LOG_FILE%"
 
 echo [2/2] Running the pretrained demo ...
-call run_demo_windows.bat %*
+call run_demo_windows.bat %* >> "%LOG_FILE%" 2>&1
 set "RC=%ERRORLEVEL%"
->>"%LOG_FILE%" echo run_demo_windows.bat exit code: %RC%
 if not "%RC%"=="0" goto :fail
+type "%LOG_FILE%"
 
 echo.
 echo Setup and demo completed successfully.
