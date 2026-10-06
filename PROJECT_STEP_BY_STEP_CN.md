@@ -1,77 +1,47 @@
-# SRST Windows 11 简明运行说明
+# SRST Windows 11 一键安装与 Notebook 演示
 
-这里只保留运行别人最需要的三步：
+适用于 Windows 11 x64。将完整项目解压到可写目录后即可安装，无需预先配置 Python、Conda 或 Jupyter，也不需要训练模型。首次安装需联网下载数 GB 的依赖，其中 CUDA 版 PyTorch 约 3.5 GB；建议为环境和下载缓存预留至少 12 GB 空间。
 
-1. 安装环境；
-2. 用 GPU 运行预训练定位 demo；
-3. 在 VS Code 运行旧的 `fitting.ipynb`。
+从 [GitHub 项目页](https://github.com/Tailong-Chen/SRST) 选择 **Code > Download ZIP**，或直接[下载 main 分支 ZIP](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip)。完整解压后进入 `SRST-main` 文件夹。测试首次安装时请解压到一个新目录，不要复制其他电脑的 `.runtime` 环境；项目会在这个目录下创建自己的环境。
 
-不需要重新训练模型。
+## 1. 一键安装并打开 Notebook
 
-## 1. 安装一次
+双击 `setup_and_run_demo.bat`。
 
-1. 解压 `SRST-Windows.zip`。
-2. 打开解压后的 `SRST` 文件夹。
-3. 如果要用 GPU，先安装或更新 NVIDIA 驱动。如果只有管理员终端能看到 GPU，后面也要用管理员权限运行。
-4. 右键 `setup_and_run_demo.bat`，选择**以管理员身份运行**。
+脚本会自动完成：
 
-脚本会创建 Conda 环境 `srst_demo`，安装项目依赖和 PyTorch CUDA 12.8，检查预训练模型，并注册 `SRST (srst_demo)` Notebook 内核。如果没有 Conda，脚本会尝试用 `winget` 安装 Miniforge；如果没有 `winget`，先安装 Miniconda 或 Miniforge，再重新运行 `install_windows.bat`。
+1. 查找已有 Conda；没有时下载官方便携 Micromamba，并验证 SHA-256。
+2. 在项目的 `.runtime/srst_demo` 创建独立 Python 3.9 环境。
+3. 从 TuragaLab Conda 渠道安装预编译的 `spline`，再安装 PyTorch、科学计算及 Jupyter 依赖。
+4. 注册 `SRST (srst_demo)` 内核，并用附带模型处理 9 帧，检查定位流程。
+5. 在浏览器打开 `fitting.ipynb`。
 
-预训练模型是 `network\\experiment1\\model_2.pt`，安装过程不会重新训练模型。
+正常情况下不需要管理员权限，也不修改系统 Python、PATH 或终端配置。GPU 运行需要兼容的 NVIDIA 驱动；PyTorch 自带 CUDA 运行库，无需单独安装 CUDA Toolkit。没有可用 GPU 时自动使用 CPU。
 
-## 2. 运行 GPU 定位
+如果只想安装，双击 `install_windows.bat`。安装完成后再双击 `run_notebook_windows.bat` 打开 Notebook。
 
-安装完成后，在项目文件夹打开 CMD 或 PowerShell：
+## 2. 运行 Notebook
 
-```bat
-run_demo_windows.bat --device cuda:0 --max-frames 20
-```
+确认内核为 **SRST (srst_demo)**，然后选择 **Cell → Run All**，或依次运行代码单元：
 
-这会使用第一个 GPU，处理 20 帧。需要兼容没有 GPU 的电脑时，用：
+`0 → 2 → 3 → 5 → 7 → 9 → 11`
 
-```bat
-run_demo_windows.bat --device auto --max-frames 20
-```
+Notebook 使用附带的 `dataset/frame.tif` 和 `network/experiment1/model_2.pt`。第 5 个单元执行定位，后续单元显示单帧结果、重建图和不确定度筛选结果。默认批量为 1，避免 GPU 的大批量显存探测。CPU 处理会较慢。
 
-显存较小时，用：
+使用 Jupyter 时保持启动终端打开；结束后在终端按 Ctrl+C 停止服务器。
 
-```bat
-run_demo_windows.bat --device cuda:0 --max-frames 20 --batch-size 1
-```
+在 VS Code 中也可以直接打开 `fitting.ipynb`，选择 **SRST (srst_demo)** 内核运行。
 
-结果在 `outputs\\demo`：
+## 3. 安装失败时
 
-- `emitters.csv`：定位出的分子坐标；
-- `reconstruction.png`：快速可视化；
-- `summary.json`：设备、CUDA、GPU 名称、帧数和耗时。
+窗口会保留错误信息，完整安装日志位于 `setup_and_run_demo.log`。修正网络或驱动问题后，可以再次运行安装入口。
 
-打开 `summary.json`，GPU 成功运行应看到：
+- 下载失败：确认能够访问 GitHub、Conda 渠道、PyPI 和 PyTorch 下载站。
+- PyTorch 下载较大，出现 `Connection timed out`、`TLS/SSL ... EOF` 后，如果仍显示 `Resuming download` 且已下载大小继续增加，表示正在续传，保持窗口打开即可。新版安装器将下载超时设为 120 秒、连接重试设为 10 次、续传尝试设为 20 次。只有最终出现 `ERROR` 或安装失败退出，才需要处理网络并重试；重新启动安装器不保证保留未完成的大文件进度。
+- `spline` 导入失败：保留日志；不要把普通 PyPI 的同名包作为替代品安装到系统 Python。
+- GPU 显存不足：先用命令行 `run_demo_windows.bat --device cpu --max-frames 9 --batch-size 1` 检查 CPU 路径。
+- Notebook 找不到内核：重新运行 `run_notebook_windows.bat`，它会刷新内核注册。
 
-```json
-"device": "cuda:0",
-"cuda_available": true
-```
+安装定位检查的结果位于 `outputs/installation_check`。普通命令行 demo 仍可通过 `run_demo_windows.bat` 运行，默认结果位于 `outputs/demo`。
 
-`cuda_device_name` 会显示实际 GPU 名称。如果 `cuda:0` 报错，先运行 `nvidia-smi`，更新 NVIDIA 驱动；如果 GPU 只在管理员终端可见，请用管理员权限运行安装器和 VS Code。
-
-如果双击后窗口仍然关闭，请在项目文件夹打开终端并运行 `cmd /k setup_and_run_demo.bat`。启动器会保持窗口，并在批处理文件旁边写入 `setup_and_run_demo.log`。
-
-## 3. 在 VS Code 运行旧 Notebook
-
-1. 用 VS Code 打开解压后的项目文件夹。
-2. 打开 `fitting.ipynb`。
-3. 选择 Python 内核 **SRST (srst_demo)**。
-4. 按下面顺序运行代码单元：
-
-   `0 → 2 → 3 → 5 → 7 → 9 → 11`
-
-第 5 个代码单元读取 `dataset/frame.tif` 并完成定位；第 7、9、11 个代码单元显示并筛选预测的分子位置。只要 PyTorch 能看到 CUDA，Notebook 会自动使用 `cuda:0`；否则自动使用 CPU。
-
-## 4. 常见问题
-
-- **找不到 Conda**：安装 Miniconda 或 Miniforge，重新打开终端，再运行 `install_windows.bat`。
-- **CUDA 不可用**：检查 `nvidia-smi`，更新 NVIDIA 驱动，必要时用管理员权限运行安装器和 VS Code。
-- **GPU 显存不足**：加 `--batch-size 1`，或运行 `run_demo_windows.bat --device cpu`。
-- **Notebook 内核错误**：选择 `SRST (srst_demo)`，不要选择系统 Python。
-
-原来的 `environment.yml` 是历史机器导出文件。Windows demo 请使用 `install_windows.bat`。
+分发时包含完整源码、`scripts/`、Notebook、示例 TIFF、模型和 PSF 标定文件。不要把本机的 `.runtime/`、`outputs/` 或安装日志打包给别人。安装器使用 `requirements-windows-conda.txt` 和 `requirements-windows-demo.txt`，通过 `constraints-windows-demo.txt` 固定已验证的 Python 依赖版本；原来的 `environment.yml` 和 `requirements.txt` 是历史机器导出文件。

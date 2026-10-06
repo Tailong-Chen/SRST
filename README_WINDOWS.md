@@ -1,52 +1,39 @@
-# SRST on Windows 11: quick start
+# SRST on Windows 11: install and run the notebook
 
-This is the shortest supported path for the bundled pretrained localization demo and the repaired `fitting.ipynb` notebook. You do not need to train a model.
+For Windows 11 x64. Extract the complete project into a writable folder. Python, Conda and Jupyter do not need to be installed beforehand; no model training is required. The first installation needs internet access and several GB of downloads (the CUDA PyTorch wheel is about 3.5 GB). Allow at least 12 GB of free disk space for the environment and download cache.
 
-## 1. Install
+Download the project using **Code > Download ZIP** on [GitHub](https://github.com/Tailong-Chen/SRST), or use the [main branch ZIP](https://github.com/Tailong-Chen/SRST/archive/refs/heads/main.zip). Extract it completely and open the `SRST-main` folder. For a first-install test, use a new folder and let the installer create its own `.runtime` environment.
 
-1. Extract the ZIP and open the project folder.
-2. If you want GPU localization, install a current NVIDIA driver. If `nvidia-smi` is only available from an Administrator terminal, use an Administrator terminal/VS Code.
-3. Right-click `setup_and_run_demo.bat` and select **Run as administrator**.
+## 1. Install and open the notebook
 
-The installer creates the `srst_demo` Conda environment, installs the PyTorch CUDA 12.8 build, checks the bundled checkpoint, and registers the VS Code/Jupyter kernel. If Conda is missing, it tries to install Miniforge with `winget`; otherwise install Miniconda or Miniforge first and run the installer again.
+Double-click `setup_and_run_demo.bat`.
 
-## 2. Run GPU localization
+The launcher finds an existing Conda installation or downloads official portable Micromamba with SHA-256 verification, creates an isolated Python 3.9 environment in `.runtime/srst_demo`, installs the compiled TuragaLab `spline` package and Python dependencies, registers **SRST (srst_demo)**, checks localization on nine example frames, and opens `fitting.ipynb` in your browser. No system Python, PATH or shell configuration changes are required.
 
-Open a terminal in the project folder after installation:
+Administrator privileges are normally unnecessary. GPU use requires a compatible NVIDIA driver. The PyTorch wheel includes its CUDA runtime, so a separate CUDA Toolkit is unnecessary. The demo uses CPU automatically when CUDA is unavailable.
 
-```bat
-run_demo_windows.bat --device cuda:0 --max-frames 20
-```
+To install without opening Jupyter, double-click `install_windows.bat`. To reopen the notebook later, double-click `run_notebook_windows.bat`.
 
-Use `--device auto` if the same folder must also run on CPU-only machines:
+## 2. Run the notebook
 
-```bat
-run_demo_windows.bat --device auto --max-frames 20
-```
+Select the kernel **SRST (srst_demo)**. Use **Cell > Run All**, or execute these code cells in order:
 
-The result is in `outputs\demo`. Open `outputs\demo\summary.json` and check:
+`0 -> 2 -> 3 -> 5 -> 7 -> 9 -> 11`
 
-```json
-"device": "cuda:0",
-"cuda_available": true
-```
+The notebook uses the bundled `dataset/frame.tif` and `network/experiment1/model_2.pt`. Cell 5 performs localization; later cells show per-frame detections, reconstruction and uncertainty filtering. The demo uses a batch size of one to avoid large GPU memory probes. CPU processing takes longer.
 
-`cuda_device_name` gives the GPU name. If GPU memory is low, add `--batch-size 1`.
+Keep the launcher terminal open while using Jupyter. Press Ctrl+C there when finished. In VS Code, open `fitting.ipynb` and select the same **SRST (srst_demo)** kernel.
 
-If a double-clicked window still closes, open a terminal in the project folder and run `cmd /k setup_and_run_demo.bat`. The launcher keeps the window open and writes `setup_and_run_demo.log` beside the batch files.
+## 3. Troubleshooting and distribution
 
-## 3. Run the notebook in VS Code
+Installation errors remain visible, and the full log is written to `setup_and_run_demo.log`. Rerun the installer after resolving a download or driver problem.
 
-1. Open the project folder in VS Code and open `fitting.ipynb`.
-2. Select the kernel **SRST (srst_demo)**.
-3. Run code cells in this order: **0 → 2 → 3 → 5 → 7 → 9 → 11**.
+- Downloads require access to GitHub, the Conda channels, PyPI and the PyTorch download site.
+- The PyTorch wheel is large. After a timeout or TLS/SSL EOF warning, keep the window open if `Resuming download` appears and the downloaded size increases. The installer allows a 120-second socket timeout, 10 connection retries and 20 resume attempts. If it finally exits with an error, resolve the network issue and rerun; restarting the installer does not guarantee preservation of an incomplete download.
+- If `spline` cannot import, retain the log. Do not substitute an unrelated PyPI package into your system Python.
+- For a CPU check, run `run_demo_windows.bat --device cpu --max-frames 9 --batch-size 1`.
+- Reopen with `run_notebook_windows.bat` to refresh the kernel registration.
 
-The notebook selects CUDA automatically when PyTorch can see the GPU; otherwise it uses CPU. Cell 5 performs localization; cells 7, 9, and 11 display and filter the predicted molecule positions.
+The installation check writes `outputs/installation_check`. The separate command-line demo remains available through `run_demo_windows.bat`, with normal outputs in `outputs/demo`.
 
-## If something fails
-
-- `conda not found`: install Miniconda/Miniforge, then rerun `install_windows.bat`.
-- `CUDA was requested, but no CUDA device is available`: run `nvidia-smi`, update the NVIDIA driver, and run the installer/VS Code as Administrator if required.
-- Out of memory: use `--batch-size 1` or run with `--device cpu`.
-
-For the same instructions in English and Chinese, see [PROJECT_STEP_BY_STEP_EN.md](PROJECT_STEP_BY_STEP_EN.md) and [PROJECT_STEP_BY_STEP_CN.md](PROJECT_STEP_BY_STEP_CN.md).
+Distribute the complete source, `scripts/`, notebook, sample TIFF, pretrained model and PSF calibration. Exclude `.runtime/`, `outputs/` and installation logs. The original `environment.yml` and `requirements.txt` are historical machine exports; the installer uses `requirements-windows-conda.txt` for binary dependencies and `requirements-windows-demo.txt` with `constraints-windows-demo.txt` for tested Python package versions.

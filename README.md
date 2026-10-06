@@ -39,7 +39,7 @@ Fitting.ipynb provides the function of fitting the original data to generate sup
 
 ## Windows demo
 
-For a one-click pretrained demo on Windows, see [README_WINDOWS.md](README_WINDOWS.md) and the [short English guide](PROJECT_STEP_BY_STEP_EN.md). `setup_and_run_demo.bat` creates the curated `srst_demo` Conda environment and runs the bundled checkpoint on the example TIFF. It installs the explicit PyTorch CUDA 12.8 wheel for Win11, performs a short CUDA smoke test when `nvidia-smi` is available, and otherwise selects CPU automatically.
+For a one-click pretrained demo on Windows, see the [Chinese guide](PROJECT_STEP_BY_STEP_CN.md), [README_WINDOWS.md](README_WINDOWS.md) or the [short English guide](PROJECT_STEP_BY_STEP_EN.md). `setup_and_run_demo.bat` installs an isolated Python 3.9 environment and all notebook dependencies, checks the bundled model, and opens `fitting.ipynb` in Jupyter. An existing Conda installation is reused when found; otherwise official portable Micromamba is downloaded automatically. The compiled `spline` package is installed from the TuragaLab channel. The demo selects CUDA or CPU automatically and uses a bounded notebook batch size. Use `install_windows.bat` for installation only, and `run_notebook_windows.bat` to reopen the notebook later.
 
 ## Acknowledgements
 

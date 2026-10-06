@@ -2,6 +2,7 @@ name: srst_demo
 channels:
   - turagalab
   - conda-forge
+  - nodefaults
 dependencies:
   - python=3.9
   - spline=0.10.0

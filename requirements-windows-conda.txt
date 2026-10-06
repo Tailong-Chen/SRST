@@ -1,0 +1,5 @@
+# Binary dependencies installed from turagalab and conda-forge.
+python=3.9.*
+spline=0.10.0
+# pip 25.2 supports automatic resuming and --resume-retries on Python 3.9.
+pip=25.2

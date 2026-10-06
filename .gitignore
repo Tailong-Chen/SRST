@@ -8,3 +8,6 @@ __pycache__/
 # Demo outputs
 outputs/
 *.zip
+
+# Private Windows Conda environment and download cache
+.runtime/
